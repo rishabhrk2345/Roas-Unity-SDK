@@ -1,0 +1,19 @@
+<dependencies>
+  <!--
+    Resolved by Google's External Dependency Manager for Unity (EDM4U) if the host project has
+    it installed (https://github.com/googlesamples/unity-jar-resolver) -- the same mechanism
+    Firebase/AdMob/Play Games Unity plugins use to pull in their own Play Services Maven
+    dependencies without shipping a fat .aar.
+
+    Without EDM4U, add these manually as `implementation` lines in
+    Assets/Plugins/Android/mainTemplate.gradle (or your custom Gradle template), or
+    RoasAndroidBridge's advertising id / App Set Id / install referrer reads will
+    silently return null / UNAVAILABLE -- every call is guarded, so nothing crashes, but
+    those attribution signals are simply absent from the beacon.
+  -->
+  <androidPackages>
+    <androidPackage spec="com.google.android.gms:play-services-ads-identifier:18.1.0" />
+    <androidPackage spec="com.google.android.gms:play-services-appset:16.0.2" />
+    <androidPackage spec="com.android.installreferrer:installreferrer:2.2" />
+  </androidPackages>
+</dependencies>

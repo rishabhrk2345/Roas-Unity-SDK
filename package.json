@@ -1,0 +1,29 @@
+{
+  "name": "com.roassensor.unity-sdk",
+  "version": "0.1.0",
+  "displayName": "ROASSensor SDK",
+  "description": "Attribution + revenue tracking for Unity apps and games -- installs, sessions, identity, funnel events and purchase verification against ROASSensor's collector API. Mirrors the wire contract of the ROASSensor Android (Kotlin) and iOS (Swift) SDKs.",
+  "unity": "2021.3",
+  "documentationUrl": "https://github.com/rishabhrk2345/Roas-Unity-SDK#readme",
+  "changelogUrl": "https://github.com/rishabhrk2345/Roas-Unity-SDK/blob/main/CHANGELOG.md",
+  "licensesUrl": "https://github.com/rishabhrk2345/Roas-Unity-SDK/blob/main/LICENSE",
+  "keywords": [
+    "attribution",
+    "analytics",
+    "roas",
+    "mmp",
+    "advertising",
+    "iap"
+  ],
+  "author": {
+    "name": "ROASSensor",
+    "url": "https://roassensor.com"
+  },
+  "samples": [
+    {
+      "displayName": "Basic Integration",
+      "description": "Initialize the SDK, identify a user, track a funnel event and verify a purchase.",
+      "path": "Samples~/BasicIntegration"
+    }
+  ]
+}

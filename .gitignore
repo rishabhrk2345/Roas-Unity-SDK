@@ -1,0 +1,30 @@
+# Unity package repo -- this IS the package (no Assets/ProjectSettings/Library of a full project),
+# but keep the usual Unity junk out in case someone opens this folder directly as a project
+# for local testing.
+/[Ll]ibrary/
+/[Tt]emp/
+/[Oo]bj/
+/[Bb]uild/
+/[Bb]uilds/
+/[Ll]ogs/
+/[Uu]ser[Ss]ettings/
+/[Mm]emoryCaptures/
+
+*.pidb.meta
+*.pdb.meta
+*.mdb.meta
+*.apk
+*.aab
+*.unitypackage
+*.app
+
+.vs/
+.vscode/
+.idea/
+*.csproj
+*.sln
+*.suo
+*.user
+*.userprefs
+
+.DS_Store

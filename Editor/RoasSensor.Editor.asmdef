@@ -1,0 +1,18 @@
+{
+    "name": "RoasSensor.Editor",
+    "rootNamespace": "RoasSensor.Editor",
+    "references": [
+        "RoasSensor.Runtime"
+    ],
+    "includePlatforms": [
+        "Editor"
+    ],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}
