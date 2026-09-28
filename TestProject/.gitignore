@@ -1,0 +1,43 @@
+# This file is scoped to TestProject/ (nested .gitignore), since the repo root's .gitignore
+# uses root-anchored patterns that don't reach into this subdirectory.
+
+/[Ll]ibrary/
+/[Tt]emp/
+/[Oo]bj/
+/[Bb]uild/
+/[Bb]uilds/
+/[Ll]ogs/
+/[Uu]ser[Ss]ettings/
+/[Mm]emoryCaptures/
+
+# Xcode/Android build outputs from a Player build
+/iOSBuild/
+/AndroidBuild/
+*.xcodeproj/xcuserdata/
+*.xcworkspace/xcuserdata/
+
+# Never commit real credentials pasted into the settings asset for local testing --
+# create it locally via ROASSensor -> Create Settings Asset instead.
+/Assets/Resources/RoasSettings.asset
+/Assets/Resources/RoasSettings.asset.meta
+
+*.pidb.meta
+*.pdb.meta
+*.mdb.meta
+*.apk
+*.aab
+*.unitypackage
+*.app
+
+.vs/
+.vscode/
+.idea/
+*.csproj
+*.sln
+*.suo
+*.user
+*.userprefs
+sysinfo.txt
+crashlytics-build.properties
+
+.DS_Store

@@ -132,6 +132,11 @@ Mirrors every other ROASSensor SDK exactly, and must not drift:
 `Tests/Editor` has NUnit parity tests for hashing, HMAC signing and session-rollover behaviour —
 open via Window → General → Test Runner → EditMode.
 
+`TestProject/` is a minimal Unity project scaffold (referencing this package by local path) for
+building on a real device with Xcode/an Android SDK available — see `TestProject/README.md`.
+This SDK has not yet been build-verified in an actual Unity Editor; treat a first integration
+as needing that pass.
+
 ## License
 
 See [LICENSE](LICENSE).
