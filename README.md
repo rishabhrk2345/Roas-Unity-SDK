@@ -140,13 +140,21 @@ open via Window → General → Test Runner → EditMode.
 `TestProject/` is a minimal Unity project scaffold (referencing this package by local path) for
 building on a real device with Xcode/an Android SDK available — see `TestProject/README.md`.
 
-**Build-verified on iOS** (2026-09-29): `TestProject` builds cleanly via
-`RoasBuildScript.BuildIOS()` and the generated Xcode project compiles and links successfully
-for the iOS Simulator (`RoasNative.mm` + the `RoasIOSPostProcessBuild.cs` framework auto-linking
-both confirmed working) — this was the one part of the SDK that could not be checked without a
-real Xcode toolchain. **Not yet build-verified on Android** — same process, just needs the
-Android SDK/NDK/JDK configured in a Unity Editor once (`RoasBuildScript.BuildAndroid()` is ready
-to go once that's set up).
+**Build-verified on both platforms** (2026-09-29), via `RoasBuildScript`'s headless
+`-batchmode -executeMethod` builds:
+- **iOS**: the generated Xcode project compiles and links successfully for the iOS Simulator
+  (`RoasNative.mm` + the `RoasIOSPostProcessBuild.cs` framework auto-linking both confirmed
+  working) — this was the one part of the SDK that could not be checked without a real Xcode
+  toolchain.
+- **Android**: `RoasAndroidBridge.cs` (GAID / App Set Id / Install Referrer via
+  `AndroidJavaObject`/`AndroidJavaProxy`) compiles cleanly and produces a working `.aab` —
+  this file is entirely excluded (`#if UNITY_ANDROID`) on every other target, so this was its
+  first real compile too.
+
+Not runtime-tested on a device yet on either platform (no crash/beacon-delivery verification —
+that needs a real ROASSensor site's public key and either a device or a simulator/emulator that
+can actually run the built app, which the environment used for the build-verification pass
+above couldn't reliably provide).
 
 ## Repo layout
 

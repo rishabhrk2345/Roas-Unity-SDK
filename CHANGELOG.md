@@ -9,6 +9,8 @@
   (`Path.Combine` double-applying `..`).
 - Build-verified on iOS: `RoasNative.mm` and the framework auto-linking postprocess step both
   compile and link successfully in a real Xcode project exported from Unity.
+- Build-verified on Android: `RoasAndroidBridge.cs` (previously compiled on no target at all)
+  compiles cleanly and produces a working `.aab` via `RoasBuildScript.BuildAndroid()`.
 
 ## 0.1.0
 
