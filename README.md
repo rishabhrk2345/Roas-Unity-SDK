@@ -139,8 +139,14 @@ open via Window → General → Test Runner → EditMode.
 
 `TestProject/` is a minimal Unity project scaffold (referencing this package by local path) for
 building on a real device with Xcode/an Android SDK available — see `TestProject/README.md`.
-This SDK has not yet been build-verified in an actual Unity Editor; treat a first integration
-as needing that pass.
+
+**Build-verified on iOS** (2026-09-29): `TestProject` builds cleanly via
+`RoasBuildScript.BuildIOS()` and the generated Xcode project compiles and links successfully
+for the iOS Simulator (`RoasNative.mm` + the `RoasIOSPostProcessBuild.cs` framework auto-linking
+both confirmed working) — this was the one part of the SDK that could not be checked without a
+real Xcode toolchain. **Not yet build-verified on Android** — same process, just needs the
+Android SDK/NDK/JDK configured in a Unity Editor once (`RoasBuildScript.BuildAndroid()` is ready
+to go once that's set up).
 
 ## Repo layout
 

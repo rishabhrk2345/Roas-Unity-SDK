@@ -1,5 +1,15 @@
 # Changelog
 
+## Unreleased
+
+- Fixed `RoasDeviceIntegrity` referencing the nonexistent `RuntimePlatform.IPhoneSimulator`
+  (CS0117) — Unity has no separate enum value for the Simulator; folded into a
+  `SystemInfo.deviceModel` heuristic instead. Found via a real device build.
+- Fixed `RoasBuildScript`'s output path resolving one directory too high
+  (`Path.Combine` double-applying `..`).
+- Build-verified on iOS: `RoasNative.mm` and the framework auto-linking postprocess step both
+  compile and link successfully in a real Xcode project exported from Unity.
+
 ## 0.1.0
 
 Initial release. Unity port of the ROASSensor Android/iOS SDK contract:
