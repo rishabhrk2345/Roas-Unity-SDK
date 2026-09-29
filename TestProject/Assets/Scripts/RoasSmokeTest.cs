@@ -36,13 +36,18 @@ public sealed class RoasSmokeTest : MonoBehaviour
                    $"AppAccountToken={Roas.AppAccountToken()}");
     }
 
-    // Wire these to on-screen buttons (uGUI Button.onClick) for a manual device test pass.
+    // [ContextMenu] makes each of these runnable from the ⋮ menu on this component in the
+    // Inspector while in Play Mode (right-click the component header, or its overflow menu) --
+    // no need to wire uGUI buttons just to smoke-test. Also wire them to real buttons if you'd
+    // rather tap through on a device.
 
+    [ContextMenu("Test: Identify")]
     public void TestIdentify()
     {
         Roas.Identify(email: "smoke-test@example.com");
     }
 
+    [ContextMenu("Test: Track Event")]
     public void TestTrackEvent()
     {
         Roas.Track(RoasEvent.ViewContent, properties: new Dictionary<string, object>
@@ -52,16 +57,22 @@ public sealed class RoasSmokeTest : MonoBehaviour
         });
     }
 
+    // Both VerifyPurchase test methods are no-ops in the Editor/Standalone (by design -- see
+    // Roas.VerifyPurchase's platform guards) since there is no store to verify a receipt
+    // against. Only meaningful on an actual Android/iOS build.
+    [ContextMenu("Test: Verify Purchase (Android)")]
     public void TestVerifyPurchaseAndroid()
     {
         Roas.VerifyPurchase(purchaseToken: "test-token", productId: "smoke_test_sku", isSubscription: false);
     }
 
+    [ContextMenu("Test: Verify Purchase (iOS)")]
     public void TestVerifyPurchaseIOS()
     {
         Roas.VerifyPurchase(transactionId: "1234567890");
     }
 
+    [ContextMenu("Test: Deep Link")]
     public void TestDeepLink()
     {
         Roas.HandleDeepLink("https://example.com/open?utm_source=smoke_test&rsclid=abc123");
