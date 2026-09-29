@@ -55,12 +55,16 @@ namespace RoasSensor.Internal
             }
             else if (Application.platform == RuntimePlatform.IPhonePlayer)
             {
+                // Unity has no separate RuntimePlatform for the iOS Simulator -- a Simulator
+                // build also reports IPhonePlayer at runtime, unlike the native Swift SDK,
+                // which gets a real compile-time #if targetEnvironment(simulator). genuinePlayer
+                // is the closest reliable proxy available without a native plugin: the
+                // Simulator runs on x86_64/arm64 macOS hardware, never "iPhone".
+                var genuinePlayer = SystemInfo.deviceModel.IndexOf("iPhone", System.StringComparison.OrdinalIgnoreCase) >= 0
+                    || SystemInfo.deviceModel.IndexOf("iPad", System.StringComparison.OrdinalIgnoreCase) >= 0;
+                if (!genuinePlayer) signals.Add("simulator");
                 foreach (var path in IosCydiaPaths) if (Directory.Exists(path) || FileExists(path)) { signals.Add("cydia"); break; }
                 if (CanWriteOutsideSandbox()) signals.Add("sandbox_write");
-            }
-            else if (Application.platform == RuntimePlatform.IPhoneSimulator)
-            {
-                signals.Add("simulator");
             }
 
             return signals;
