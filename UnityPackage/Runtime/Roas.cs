@@ -245,21 +245,21 @@ namespace RoasSensor
         public static void VerifyPurchase(string purchaseToken = null, string productId = null, bool isSubscription = false, string transactionId = null)
         {
             if (!_initialized) return;
-            var body = BaseBody();
 #if UNITY_ANDROID && !UNITY_EDITOR
             if (string.IsNullOrEmpty(purchaseToken) || string.IsNullOrEmpty(productId)) return;
-            body.Put("platform", "android")
+            var body = BaseBody()
+                .Put("platform", "android")
                 .Put("purchase_token", purchaseToken)
                 .Put("product_id", productId)
                 .Put("is_subscription", isSubscription);
+            _transport.Send("/api/tracking/mobile/purchase", body);
 #elif UNITY_IOS && !UNITY_EDITOR
             var id = (transactionId ?? string.Empty).Trim();
             if (id.Length == 0 || id.Length > 64) return;
-            body.Put("platform", "ios").Put("transaction_id", id);
-#else
-            return; // no store to verify against outside Android/iOS
-#endif
+            var body = BaseBody().Put("platform", "ios").Put("transaction_id", id);
             _transport.Send("/api/tracking/mobile/purchase", body);
+#endif
+            // No store to verify against outside Android/iOS (Editor, Standalone, ...) -- a no-op there.
         }
 
         /// <summary>

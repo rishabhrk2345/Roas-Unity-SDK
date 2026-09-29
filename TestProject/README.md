@@ -6,10 +6,14 @@ exists in the environment this SDK was originally written in, so none of this ha
 build-verified yet. Use this to close that gap.
 
 The SDK is referenced from `Packages/manifest.json` as a **local file path**
-(`"com.roassensor.unity-sdk": "file:../.."`) pointing at the package root one level up
-(`TestProject/` sits directly inside the `Roas-Unity-SDK` repo, which *is* the package) — so
-editing SDK source and re-opening/re-focusing the Editor picks up changes immediately, no
-publish/re-clone step needed.
+(`"com.roassensor.unity-sdk": "file:../../UnityPackage"`) pointing at the `UnityPackage/`
+folder that sits beside `TestProject/` in this same repo — so editing SDK source and
+re-opening/re-focusing the Editor picks up changes immediately, no publish/re-clone step needed.
+
+Note it points at `UnityPackage/`, a **sibling** of this folder, not a parent of it. `TestProject`
+used to live *inside* the package root itself, which broke Unity's package cache the moment this
+project was opened (its own `Library`/`Temp` got copied in as if they were package content) —
+see the main README's "Repo layout" section.
 
 ## Opening it
 

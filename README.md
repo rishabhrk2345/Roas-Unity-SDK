@@ -14,14 +14,19 @@ an install, not three.
 Package Manager → Add package from git URL:
 
 ```
-https://github.com/rishabhrk2345/Roas-Unity-SDK.git
+https://github.com/rishabhrk2345/Roas-Unity-SDK.git?path=UnityPackage
 ```
 
 Or add directly to `Packages/manifest.json`:
 
 ```json
-"com.roassensor.unity-sdk": "https://github.com/rishabhrk2345/Roas-Unity-SDK.git"
+"com.roassensor.unity-sdk": "https://github.com/rishabhrk2345/Roas-Unity-SDK.git?path=UnityPackage"
 ```
+
+(the package itself lives in the repo's `UnityPackage/` subfolder — `?path=` is UPM's standard
+way of pointing a git dependency at a subdirectory of a monorepo, needed here because
+`TestProject/` sits alongside it in the same repo for local build-testing; see "Repo layout"
+below.)
 
 ### Android
 
@@ -136,6 +141,19 @@ open via Window → General → Test Runner → EditMode.
 building on a real device with Xcode/an Android SDK available — see `TestProject/README.md`.
 This SDK has not yet been build-verified in an actual Unity Editor; treat a first integration
 as needing that pass.
+
+## Repo layout
+
+The package itself lives in `UnityPackage/` (Runtime, Editor, Tests, Samples~, package.json) —
+**not** at the repo root — specifically so `TestProject/`, which sits beside it in the same
+repo for convenience, is never mistaken for part of the package's own content. Unity's `file:`
+package resolution copies everything under the referenced folder into its package cache; earlier
+versions of this repo had the package at the repo root with `TestProject/` nested *inside* it,
+which meant `TestProject`'s own `Library`/`Temp` folders got dragged into the package cache too
+and produced "Library folder embedded in an asset folder" errors the moment `TestProject` was
+opened. Splitting them into sibling folders (`UnityPackage/` and `TestProject/`) fixes that for
+good — if you're pulling an older clone and hit that error, re-clone or `git pull` to pick up
+this layout.
 
 ## License
 
