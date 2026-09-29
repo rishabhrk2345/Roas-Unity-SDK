@@ -35,10 +35,25 @@ Player Settings → the SDK reads Play Services classes by reflection
 resolve the advertising id, App Set Id and Install Referrer Maven artifacts for those signals
 to be anything but silently absent. If your project has
 [External Dependency Manager for Unity](https://github.com/googlesamples/unity-jar-resolver)
-installed, this package's `Editor/RoasSensorDependencies.xml` is picked up automatically and
-resolves them for you. Without EDM4U, add the three `androidPackage` lines in that file to
-your own Gradle template by hand. Every read is guarded — a missing dependency degrades to
-"no signal", never a crash.
+(EDM4U) installed, this package's `Editor/RoasSensorDependencies.xml` is picked up automatically
+and resolves them for you. The easiest way to add EDM4U is via its OpenUPM scoped registry —
+add this to `Packages/manifest.json` (see `TestProject/Packages/manifest.json` in this repo for
+a working example):
+
+```json
+"scopedRegistries": [
+  { "name": "package.openupm.com", "url": "https://package.openupm.com",
+    "scopes": ["com.google.external-dependency-manager"] }
+],
+"dependencies": {
+  "com.google.external-dependency-manager": "1.2.189"
+}
+```
+
+Without EDM4U, add the three `androidPackage` lines in that file to your own Gradle template by
+hand. Every read is guarded — a missing dependency degrades to "no signal", never a crash
+(confirmed on a real device: `device_id`/`app_set_id`/`install_referrer` all read empty with
+`referrer_status=UNAVAILABLE`, no crash, before EDM4U was added).
 
 ### iOS
 
