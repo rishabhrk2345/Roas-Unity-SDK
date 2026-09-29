@@ -36,7 +36,7 @@ public static class RoasBuildScript
     private static void Build(BuildTarget target, string relativeOutputPath)
     {
         EnsureScene();
-        var outputPath = Path.GetFullPath(Path.Combine(Application.dataPath, "..", relativeOutputPath));
+        var outputPath = Path.GetFullPath(Path.Combine(Application.dataPath, relativeOutputPath));
         Directory.CreateDirectory(Path.GetDirectoryName(outputPath) ?? outputPath);
 
         var report = BuildPipeline.BuildPlayer(new BuildPlayerOptions
