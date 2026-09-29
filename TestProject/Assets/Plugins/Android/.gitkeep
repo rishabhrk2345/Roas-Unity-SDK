@@ -1,0 +1,11 @@
+This directory must exist (even empty) before EDM4U (External Dependency Manager for
+Unity) runs its Android Resolver. Its GradleTemplateResolver.EnsureGradleTemplateEnabled
+copies mainTemplate.gradle from the Unity Editor's own template folder into this exact
+path, and that copy throws System.IO.DirectoryNotFoundException -- silently aborting the
+*entire* dependency resolution, with no build-time error -- if the directory doesn't
+already exist. Confirmed by decompiling a built APK's dex and finding none of the
+Play Services classes RoasAndroidBridge.cs reflects into, tracing back through
+~/Library/Logs/Unity/Editor.log to this exact exception.
+
+Everything EDM4U generates into this folder (mainTemplate.gradle, etc.) is gitignored --
+only this placeholder is tracked, so the directory survives a fresh clone.
