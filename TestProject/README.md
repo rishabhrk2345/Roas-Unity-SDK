@@ -30,10 +30,43 @@ see the main README's "Repo layout" section.
    add an empty GameObject, attach `RoasSmokeTest` (`Assets/Scripts/RoasSmokeTest.cs`). Leave
    its `Public Key` field blank to use the settings asset from step 4, or paste one directly.
 
+## If the Editor window won't render (remote desktop / VM / headless host)
+
+Some remote-display setups fail to render Unity's Metal-accelerated Editor UI at all — a solid
+black or magenta window is that, not a project problem, and there is no code fix for it here.
+Rather than fight it, build headless from the command line, which never opens a window:
+
+```bash
+/Applications/Unity/Hub/Editor/2022.3.50f1/Unity.app/Contents/MacOS/Unity \
+  -batchmode -quit -nographics -projectPath ~/Roas-Unity-SDK/TestProject \
+  -executeMethod RoasBuildScript.BuildIOS -logFile ~/roas-ios-build.log
+```
+
+`Assets/Editor/RoasBuildScript.cs` creates a throwaway scene on demand (this project ships with
+none checked in) and calls `BuildPipeline.BuildPlayer` targeting iOS, writing the Xcode project
+to `~/roas-ios-build/` (outside the repo). Tail the log while it runs:
+
+```bash
+tail -f ~/roas-ios-build.log
+```
+
+The same script has `BuildAndroid()` for an Android `.aab`, though the Android SDK/NDK/JDK need
+to already be configured in Unity's Preferences first (a one-time GUI step Unity can't skip —
+if the window genuinely can't render at all, Android will need the working-GUI path once before
+this shortcut helps).
+
+You still need the settings asset from step 4 above for `Roas.Initialize` to have a public key —
+create it via the `ROASSensor` menu if the GUI renders at all (even a broken-looking window
+still accepts menu clicks in most cases; the corruption tends to be confined to the custom-drawn
+panel content, not the native macOS menu bar), or hand-edit
+`Assets/Resources/RoasSettings.asset` after running `ROASSensor → Create Settings Asset` once
+to see its shape.
+
 ## What to actually check with Xcode available
 
 1. **Switch Platform → iOS** (File → Build Settings), then **Build** (not Build & Run is fine
-   too) to a folder outside this repo.
+   too) to a folder outside this repo — or use the headless command above if the Build Settings
+   window itself won't render.
 2. Open the generated `.xcodeproj`/`.xcworkspace` and confirm:
    - `RoasNative.mm` compiles with no errors (this is the one file in the whole SDK that
      could not be syntax-checked without Xcode).
