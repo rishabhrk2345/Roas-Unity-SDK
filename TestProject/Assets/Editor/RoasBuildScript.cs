@@ -25,6 +25,13 @@ public static class RoasBuildScript
     /// Open the generated <c>.xcodeproj</c> there once this finishes -- check
     /// <c>~/roas-ios-build.log</c> if it doesn't.
     /// </summary>
+    /// <summary>The generic default bundle id ("com.DefaultCompany.TestProject") cannot be
+    /// registered to any real Apple Developer team -- confirmed on a real attempt ("app
+    /// identifier ... not available"), since it collides with whatever the countless other
+    /// default Unity projects out there have already registered. This is what
+    /// <see cref="EnsureIOSBundleId"/> replaces it with -- unique enough to not collide.</summary>
+    private const string TestBundleId = "com.rishabhrk2345.roasunitysdktest";
+
     public static void BuildIOS() => Build(BuildTarget.iOS, "../../../roas-ios-build");
 
     /// <summary>Produces a .aab (Android App Bundle) -- the Play Store submission format.
@@ -57,6 +64,10 @@ public static class RoasBuildScript
         {
             EditorUserBuildSettings.buildAppBundle = buildAppBundle;
             EnsureAndroidPlayServicesDependencies();
+        }
+        else if (target == BuildTarget.iOS)
+        {
+            PlayerSettings.SetApplicationIdentifier(BuildTargetGroup.iOS, TestBundleId);
         }
 
         var report = BuildPipeline.BuildPlayer(new BuildPlayerOptions
