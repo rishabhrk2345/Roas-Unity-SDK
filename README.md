@@ -166,10 +166,27 @@ building on a real device with Xcode/an Android SDK available — see `TestProje
   this file is entirely excluded (`#if UNITY_ANDROID`) on every other target, so this was its
   first real compile too.
 
-Not runtime-tested on a device yet on either platform (no crash/beacon-delivery verification —
-that needs a real ROASSensor site's public key and either a device or a simulator/emulator that
-can actually run the built app, which the environment used for the build-verification pass
-above couldn't reliably provide).
+**Runtime-verified against a real backend** (2026-09-30), on a real Android device (not just a
+compile check):
+- Install reporting, session tracking, `Identify` (email hash matched a manually-computed
+  SHA-256), `Track`, and `HandleDeepLink` (full query string forwarded intact) all confirmed by
+  reading the actual database rows they produced, not just trusting a 200 response.
+- Real advertising id (GAID) and App Set Id confirmed reading correctly via
+  `AndroidJavaObject`/`AndroidJavaProxy` reflection into Play Services — both landed as real,
+  non-empty hashes in the backend.
+- Play Install Referrer correctly reports unavailable on a sideloaded (`adb install`) build,
+  since Install Referrer only has data for a Play Store install — this is expected, not a bug,
+  and remains unverified pending a real Play Store (internal testing track) install.
+- iOS has not yet had the equivalent device runtime pass (build-verified only, per above).
+
+**A real EDM4U bug/quirk was found and worked around** during this pass: EDM4U's "Resolve" menu
+action reliably completed enabling custom Gradle templates (copying `mainTemplate.gradle`) but
+did not reliably complete patching `**DEPS**` with the actual dependency coordinates, across
+several repeated manual attempts. `TestProject/Assets/Editor/RoasBuildScript.cs` now patches
+`**DEPS**` directly and idempotently as a safety net, rather than depending solely on EDM4U's
+async resolve job completing correctly. If you integrate this package into your own project and
+EDM4U's Resolve isn't populating your Gradle template either, check `**DEPS**` by hand the same
+way.
 
 ## Repo layout
 

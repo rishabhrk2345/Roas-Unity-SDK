@@ -11,6 +11,18 @@
   compile and link successfully in a real Xcode project exported from Unity.
 - Build-verified on Android: `RoasAndroidBridge.cs` (previously compiled on no target at all)
   compiles cleanly and produces a working `.aab` via `RoasBuildScript.BuildAndroid()`.
+- Runtime-verified against a real backend on a real Android device: install/session/identify/
+  track/deep-link all confirmed correct by reading actual DB rows; real GAID and App Set Id
+  hashes confirmed landing correctly via Play Services reflection. Install Referrer correctly
+  reports unavailable on a sideloaded build (expected -- no Play Store install to source it from).
+- Fixed `RoasSensorDependencies.xml` containing illegal `--` sequences inside its XML comment,
+  which silently broke EDM4U's parser (no build-time error, just missing dependencies at
+  runtime) -- found by decompiling a built APK's dex and finding none of the expected classes.
+- Fixed EDM4U's Android Resolver aborting entirely with `DirectoryNotFoundException` when
+  `Assets/Plugins/Android` didn't already exist; that folder is now pre-created.
+- Worked around EDM4U's "Resolve" menu reliably enabling Gradle templates but not reliably
+  patching `**DEPS**` with dependency coordinates across repeated attempts -- `RoasBuildScript`
+  now patches it directly as a safety net.
 
 ## 0.1.0
 
