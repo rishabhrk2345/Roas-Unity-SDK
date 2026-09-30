@@ -177,7 +177,13 @@ compile check):
 - Play Install Referrer correctly reports unavailable on a sideloaded (`adb install`) build,
   since Install Referrer only has data for a Play Store install — this is expected, not a bug,
   and remains unverified pending a real Play Store (internal testing track) install.
-- iOS has not yet had the equivalent device runtime pass (build-verified only, per above).
+- **iOS runtime-verified too** (2026-09-30), on real iPhone hardware: install/session reporting
+  (`HTTP 201`), deferred-link probe (`HTTP 200`), and `Identify` (`HTTP 200`) all confirmed
+  delivered. Real IDFV (`28510405-D3F1-4590-A91C-5704DEF99962`, sent raw per spec — never
+  hashed), real Apple Search Ads status (`referrer_status=OK`, `referrer_source=asa` — the
+  AdServices API call genuinely succeeded), and real IDFA (confirmed via a 64-char SHA-256 hash
+  in the identity graph) all landed correctly — and the backend correctly merged all three
+  (IDFA + IDFV + vid) into a single identity, not three separate ones.
 
 **A real EDM4U bug/quirk was found and worked around** during this pass: EDM4U's "Resolve" menu
 action reliably completed enabling custom Gradle templates (copying `mainTemplate.gradle`) but

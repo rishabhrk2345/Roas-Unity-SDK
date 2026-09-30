@@ -23,6 +23,11 @@
 - Worked around EDM4U's "Resolve" menu reliably enabling Gradle templates but not reliably
   patching `**DEPS**` with dependency coordinates across repeated attempts -- `RoasBuildScript`
   now patches it directly as a safety net.
+- Fixed a missing iOS app icon causing a hard build failure on newer Xcode (26+); the build
+  script now generates a placeholder icon automatically.
+- Runtime-verified on real iOS hardware: install/session/deferred-link/identify all confirmed
+  delivered; real IDFV, real Apple Search Ads status, and real IDFA (hashed) all confirmed
+  landing correctly, with the identity graph correctly merging all three into one identity.
 
 ## 0.1.0
 
