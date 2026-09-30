@@ -68,6 +68,7 @@ public static class RoasBuildScript
         else if (target == BuildTarget.iOS)
         {
             PlayerSettings.SetApplicationIdentifier(BuildTargetGroup.iOS, TestBundleId);
+            EnsureAppIcon();
         }
 
         var report = BuildPipeline.BuildPlayer(new BuildPlayerOptions
@@ -137,6 +138,43 @@ public static class RoasBuildScript
         File.WriteAllText(templatePath, content.Replace(marker, patchedMarker));
         AssetDatabase.Refresh();
         Debug.Log($"[RoasBuildScript] Patched {templatePath} with Play Services dependencies directly.");
+    }
+
+    /// <summary>
+    /// This project never had a Player Settings icon configured (a throwaway smoke-test scene
+    /// has no reason to want one) -- but newer Xcode versions (26+) treat a missing "AppIcon" set
+    /// in the exported Images.xcassets as a hard build failure
+    /// ("None of the input catalogs contained a matching ... app icon set named 'AppIcon'"),
+    /// where older Xcode only warned. Generates one flat-color placeholder PNG and assigns it as
+    /// the iOS icon for every required size; Unity's own export step does the actual
+    /// per-size/per-idiom AppIcon.appiconset generation from it. Idempotent -- skips regenerating
+    /// once the asset already exists.
+    /// </summary>
+    private static void EnsureAppIcon()
+    {
+        const string iconPath = "Assets/RoasTestIcon.png";
+        if (!File.Exists(iconPath))
+        {
+            const int size = 1024;
+            var texture = new Texture2D(size, size, TextureFormat.RGBA32, false);
+            var pixels = new Color32[size * size];
+            var color = new Color32(0xFF, 0x5A, 0x5F, 0xFF); // ROAS coral, per the main product's brand token
+            for (var i = 0; i < pixels.Length; i++) pixels[i] = color;
+            texture.SetPixels32(pixels);
+            texture.Apply();
+            File.WriteAllBytes(iconPath, texture.EncodeToPNG());
+            Object.DestroyImmediate(texture);
+            AssetDatabase.ImportAsset(iconPath, ImportAssetOptions.ForceUpdate);
+        }
+
+        var icon = AssetDatabase.LoadAssetAtPath<Texture2D>(iconPath);
+        if (icon == null)
+        {
+            Debug.LogWarning($"[RoasBuildScript] Failed to load {iconPath} after import -- app icon build error may recur.");
+            return;
+        }
+
+        PlayerSettings.SetIconsForTargetGroup(BuildTargetGroup.iOS, new[] { icon });
     }
 
     private static void EnsureScene()
