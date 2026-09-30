@@ -56,6 +56,7 @@ public static class RoasBuildScript
         if (target == BuildTarget.Android)
         {
             EditorUserBuildSettings.buildAppBundle = buildAppBundle;
+            EnsureAndroidPlayServicesDependencies();
         }
 
         var report = BuildPipeline.BuildPlayer(new BuildPlayerOptions
@@ -71,6 +72,60 @@ public static class RoasBuildScript
         {
             EditorApplication.Exit(1); // non-zero exit so a CI/terminal caller can tell it failed
         }
+    }
+
+    /// <summary>
+    /// Patches Play Services dependencies directly into `mainTemplate.gradle`'s `**DEPS**`
+    /// placeholder, bypassing EDM4U's own Gradle-template patch step.
+    ///
+    /// EDM4U's "Resolve" menu action reliably completed its FIRST phase (copying
+    /// mainTemplate.gradle/gradleTemplate.properties from the Editor's template folder and
+    /// enabling custom Gradle templates) but never reliably completed the SECOND phase (actually
+    /// replacing `**DEPS**` with our package's `Editor/RoasSensorDependencies.xml` coordinates)
+    /// across several repeated manual clicks in this environment -- confirmed by re-reading the
+    /// patched file after each attempt rather than trusting the menu action's own "done" state.
+    /// Since the actual dependency coordinates are simple, fixed, and already declared once in
+    /// this package's `RoasSensorDependencies.xml`, doing it here directly is far more reliable
+    /// than depending on EDM4U's async multi-phase resolve job completing correctly headlessly.
+    ///
+    /// Idempotent: a build re-run after this has already patched the file is a no-op. Keep this
+    /// list in sync with `UnityPackage/Editor/RoasSensorDependencies.xml` by hand -- there is no
+    /// single source of truth once EDM4U's own resolution is bypassed like this.
+    /// </summary>
+    private static void EnsureAndroidPlayServicesDependencies()
+    {
+        const string templatePath = "Assets/Plugins/Android/mainTemplate.gradle";
+        if (!File.Exists(templatePath))
+        {
+            Debug.LogWarning($"[RoasBuildScript] {templatePath} does not exist yet -- run Assets > " +
+                "External Dependency Manager > Android Resolver > Resolve once first (it creates this " +
+                "file even if it doesn't finish patching it), then re-run this build.");
+            return;
+        }
+
+        var content = File.ReadAllText(templatePath);
+        if (content.Contains("play-services-ads-identifier"))
+        {
+            return; // already patched on a previous build -- nothing to do
+        }
+
+        const string marker = "**DEPS**";
+        if (!content.Contains(marker))
+        {
+            Debug.LogWarning($"[RoasBuildScript] {templatePath} has no {marker} placeholder -- " +
+                "can't patch it automatically. Add the dependencies to it by hand.");
+            return;
+        }
+
+        const string patchedMarker =
+            "**DEPS**\n" +
+            "    implementation 'com.google.android.gms:play-services-ads-identifier:18.1.0'\n" +
+            "    implementation 'com.google.android.gms:play-services-appset:16.0.2'\n" +
+            "    implementation 'com.android.installreferrer:installreferrer:2.2'\n";
+
+        File.WriteAllText(templatePath, content.Replace(marker, patchedMarker));
+        AssetDatabase.Refresh();
+        Debug.Log($"[RoasBuildScript] Patched {templatePath} with Play Services dependencies directly.");
     }
 
     private static void EnsureScene()
