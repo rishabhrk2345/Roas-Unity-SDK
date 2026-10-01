@@ -2,12 +2,12 @@
 <!--
   Enabling Player Settings -> Android -> Publishing Settings -> Custom Main Manifest replaced
   whatever was at this path with Unity's own default template (LAUNCHER intent-filter, theme,
-  unityplayer.UnityActivity meta-data) -- confirmed on a real device: our previously-placed
+  unityplayer.UnityActivity meta-data), confirmed on a real device: our previously-placed
   deep-link intent-filter was silently gone from the checked-out file afterward, the same class
   of "needs an explicit enable, not just file presence" gotcha already hit once with EDM4U's
   mainTemplate.gradle. This version is that same Unity-generated base PLUS the roastest://
   intent-filter added as a second <intent-filter> block on the same activity (an Activity may
-  declare multiple), confirmed real via `aapt dump badging` on a built APK -- not assumed.
+  declare multiple), confirmed real via `aapt dump badging` on a built APK, not assumed.
 -->
 <manifest
     xmlns:android="http://schemas.android.com/apk/res/android"
