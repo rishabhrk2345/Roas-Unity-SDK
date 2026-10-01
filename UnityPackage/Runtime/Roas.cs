@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Threading.Tasks;
 using RoasSensor.Internal;
 using UnityEngine;
 
@@ -203,13 +204,24 @@ namespace RoasSensor
             // undetermined), so it is worth reading again here.
             body.Put("os", CurrentOsField());
 #if UNITY_ANDROID && !UNITY_EDITOR
-            var deviceId = RoasAndroidBridge.AdvertisingId();
-            if (!string.IsNullOrEmpty(deviceId)) body.Put("device_id", deviceId);
+            // AdvertisingId() makes a blocking Binder IPC call to Play Services -- never call
+            // it on the main thread, or a slow device stalls this call for its duration.
+            Task.Run(() =>
+            {
+                var deviceId = RoasAndroidBridge.AdvertisingId();
+                _runtime.RunOnMainThread(() =>
+                {
+                    if (!string.IsNullOrEmpty(deviceId)) body.Put("device_id", deviceId);
+                    _transport.Send("/api/tracking/mobile/identify", body);
+                });
+            });
 #elif UNITY_IOS && !UNITY_EDITOR
             var idfa = RoasIOSBridge.AdvertisingIdentifier();
             if (!string.IsNullOrEmpty(idfa)) body.Put("device_id", idfa);
-#endif
             _transport.Send("/api/tracking/mobile/identify", body);
+#else
+            _transport.Send("/api/tracking/mobile/identify", body);
+#endif
         }
 
         /// <summary>Record a funnel/behaviour event (never revenue -- see <see cref="RoasEvent"/>).</summary>
@@ -415,16 +427,29 @@ namespace RoasSensor
             if (customerUserId != null) body.Put("external_id", customerUserId);
 
 #if UNITY_ANDROID && !UNITY_EDITOR
-            var gaid = RoasAndroidBridge.AdvertisingId();
-            if (!string.IsNullOrEmpty(gaid)) body.Put("device_id", gaid);
-            var appSetId = RoasAndroidBridge.AppSetId();
-            if (!string.IsNullOrEmpty(appSetId)) body.Put("app_set_id", appSetId);
-
-            RoasAndroidBridge.FetchInstallReferrer(result =>
+            // AdvertisingId()/AppSetId() each make a blocking Binder IPC call to Play Services
+            // -- AppSetId specifically can block up to 5 seconds on its own internal timeout.
+            // Never call these on the main thread: on a slow device that turns the very first
+            // beacon this SDK ever sends into a startup hitch, or worse, brushes against
+            // Android's ANR threshold. The native Kotlin SDK backgrounds this for the same
+            // reason (see DeviceId.kt/AppSetId.kt); this mirrors it rather than trusting a
+            // coroutine to count as "background" the way it would for a pure network call.
+            Task.Run(() =>
             {
-                ApplyReferrerResult(body, result);
-                _transport.Send("/api/tracking/mobile/first-open", body);
-                _storage.InstallReported = true;
+                var gaid = RoasAndroidBridge.AdvertisingId();
+                var appSetId = RoasAndroidBridge.AppSetId();
+                _runtime.RunOnMainThread(() =>
+                {
+                    if (!string.IsNullOrEmpty(gaid)) body.Put("device_id", gaid);
+                    if (!string.IsNullOrEmpty(appSetId)) body.Put("app_set_id", appSetId);
+
+                    RoasAndroidBridge.FetchInstallReferrer(result =>
+                    {
+                        ApplyReferrerResult(body, result);
+                        _transport.Send("/api/tracking/mobile/first-open", body);
+                        _storage.InstallReported = true;
+                    });
+                });
             });
 #elif UNITY_IOS && !UNITY_EDITOR
             var idfa = RoasIOSBridge.AdvertisingIdentifier();

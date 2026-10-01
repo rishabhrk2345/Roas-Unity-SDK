@@ -1,5 +1,25 @@
 # Changelog
 
+## 0.1.2
+
+- **Fixed a real production-safety bug**: Android's `RoasAndroidBridge.AdvertisingId()` and
+  `AppSetId()` were being called synchronously on Unity's main thread during `Initialize()`
+  and `Identify()`. Both make a blocking Binder IPC call to Play Services — `AppSetId()`
+  specifically has its own 5-second internal timeout — so on a slow device this risked a
+  startup hitch or, in the worst case, brushing against Android's ANR threshold. The native
+  Kotlin SDK has always backgrounded this for exactly this reason; the Unity port never got
+  that treatment until now. Fixed by adding a thread-safe main-thread dispatcher
+  (`RoasRuntime.RunOnMainThread`) and running both native reads on a background
+  `System.Threading.Tasks.Task` before hopping back to the main thread to build and send the
+  beacon (PlayerPrefs/UnityWebRequest/StartCoroutine all require the main thread, so only the
+  blocking native calls themselves move off it). Found by direct code review when asked
+  point-blank whether the SDK was safe to integrate into a real production game — not found
+  by testing, since neither device used in this session's verification pass was slow enough
+  to make the hitch obvious.
+- iOS's equivalent native reads (IDFA/IDFV/Apple Search Ads token) were left as-is: they are
+  documented as fast, local, non-network calls with no comparable blocking risk, unlike
+  Android's App Set Id.
+
 ## 0.1.1
 
 - Fixed `RoasDeviceIntegrity` referencing the nonexistent `RuntimePlatform.IPhoneSimulator`
