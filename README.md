@@ -96,12 +96,33 @@ Roas.Track(RoasEvent.AddToCart, properties: new Dictionary<string, object> {
 Roas.VerifyPurchase(purchaseToken: token, productId: sku, isSubscription: false); // Android
 Roas.VerifyPurchase(transactionId: transactionId);                                // iOS
 
-// Forward a deep/universal link that reopened an already-installed app
-Roas.HandleDeepLink(url);
-
 // iOS: ask for tracking permission at a moment of your choosing (never at cold start)
 Roas.RequestTrackingAuthorization();
 ```
+
+## Deep links: two halves, both required
+
+`Roas.HandleDeepLink(url)` only parses a URL you hand it — getting that URL out of Unity needs
+**both** of these, not just one, confirmed on real Android and iOS hardware:
+
+```csharp
+private void Start()
+{
+    // Cold start: if THIS launch opened the app (an ad click, a share link, the app wasn't
+    // already running), Application.absoluteURL is already populated by the time Start()
+    // runs -- empty otherwise. Skip this and the single most common deep link, the one that
+    // launches the app for the first time, is silently never forwarded.
+    if (!string.IsNullOrEmpty(Application.absoluteURL))
+        Roas.HandleDeepLink(Application.absoluteURL);
+}
+
+private void OnEnable() => Application.deepLinkActivated += Roas.HandleDeepLink;
+private void OnDisable() => Application.deepLinkActivated -= Roas.HandleDeepLink;
+```
+
+`Application.deepLinkActivated` covers a warm reopen (the app was already running); it never
+fires for a cold start, which is why the `Application.absoluteURL` check above is not optional.
+See `Samples~/BasicIntegration/RoasSampleUsage.cs` for both wired together in one component.
 
 ## Purchase attribution: two different platform APIs, on purpose
 
@@ -169,8 +190,10 @@ building on a real device with Xcode/an Android SDK available — see `TestProje
 **Runtime-verified against a real backend** (2026-09-30), on a real Android device (not just a
 compile check):
 - Install reporting, session tracking, `Identify` (email hash matched a manually-computed
-  SHA-256), `Track`, and `HandleDeepLink` (full query string forwarded intact) all confirmed by
-  reading the actual database rows they produced, not just trusting a 200 response.
+  SHA-256), `Track`, and `HandleDeepLink` called directly with a URL (full query string
+  forwarded intact) all confirmed by reading the actual database rows they produced, not just
+  trusting a 200 response. **This did not yet test a real OS-level deep link tap** — see
+  2026-10-01 below for that.
 - Real advertising id (GAID) and App Set Id confirmed reading correctly via
   `AndroidJavaObject`/`AndroidJavaProxy` reflection into Play Services — both landed as real,
   non-empty hashes in the backend.
@@ -184,6 +207,17 @@ compile check):
   AdServices API call genuinely succeeded), and real IDFA (confirmed via a 64-char SHA-256 hash
   in the identity graph) all landed correctly — and the backend correctly merged all three
   (IDFA + IDFV + vid) into a single identity, not three separate ones.
+
+**Real OS-level deep link verified end-to-end** (2026-10-01), a genuine tap on a registered URL
+scheme — not a direct `HandleDeepLink()` call — confirmed on real Android **and** iOS hardware,
+by reading the resulting backend rows, both cold-start (`Application.absoluteURL`) and warm
+reopen (`Application.deepLinkActivated`). This had never actually been exercised before: every
+prior device build this project made packaged the wrong, auto-generated blank test scene (see
+`TestProject/CHANGELOG`-equivalent notes in the SDK's own `CHANGELOG.md` 0.1.3 entry), so none
+of the test harness's code — deep link handling included — had ever genuinely run on a device
+until this fix. Also found and fixed in the same pass: a real race in `RoasTransport` where a
+beacon enqueued while another flush was already running could sit stuck in the offline queue
+for a full extra app cycle. See `CHANGELOG.md` 0.1.3 for both.
 
 **A real EDM4U bug/quirk was found and worked around** during this pass: EDM4U's "Resolve" menu
 action reliably completed enabling custom Gradle templates (copying `mainTemplate.gradle`) but
