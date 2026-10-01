@@ -13,7 +13,18 @@ using UnityEngine;
 /// </summary>
 public static class RoasBuildScript
 {
-    private const string ScenePath = "Assets/Scenes/SmokeTest.unity";
+    /// <summary>
+    /// Points at the scene that actually has the SmokeTest GameObject
+    /// (RoasSmokeTest/RoasPurchaseTest attached) on it. This was wrong for most of this
+    /// project's life -- EnsureScene() below silently created a BLANK scene (just Main
+    /// Camera + Directional Light) at a path that didn't exist, "Assets/Scenes/SmokeTest.unity",
+    /// and every single device build packaged that blank scene instead of the real one at
+    /// "Assets/unity roas test.unity" -- which is why nothing logged under RoasSmokeTest ever
+    /// showed up on-device all session (confirmed: it logs fine in Editor Play Mode, which
+    /// uses whatever scene is actually open, not this constant) while init-level SDK logging
+    /// (scene-independent) looked completely normal the whole time.
+    /// </summary>
+    private const string ScenePath = "Assets/unity roas test.unity";
 
     /// <summary>
     /// <code>
