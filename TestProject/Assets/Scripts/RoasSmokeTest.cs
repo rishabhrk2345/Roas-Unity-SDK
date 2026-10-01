@@ -26,6 +26,14 @@ public sealed class RoasSmokeTest : MonoBehaviour
         {
             Roas.Initialize(publicKey);
         }
+
+        // Real OS-level deep links -- NOT the same thing TestDeepLink() below exercises.
+        // That method only proves Roas.HandleDeepLink() parses a URL correctly once it
+        // already has one; this is the half that gets a REAL tap on a real "roastest://"
+        // link (see Assets/Plugins/Android/AndroidManifest.xml and
+        // Assets/Editor/RoasTestProjectIOSPostProcess.cs for where that scheme is
+        // registered) to actually reach this code at all. Warm open:
+        Application.deepLinkActivated += OnDeepLinkActivated;
     }
 
     private void Start()
@@ -34,6 +42,24 @@ public sealed class RoasSmokeTest : MonoBehaviour
         Debug.Log($"[RoasSmokeTest] VisitorId={Roas.VisitorId()} " +
                    $"ObfuscatedAccountId={Roas.ObfuscatedAccountId()} " +
                    $"AppAccountToken={Roas.AppAccountToken()}");
+
+        // Cold start: Application.absoluteURL is already set by the time Start() runs if
+        // this launch WAS a deep link open, empty otherwise.
+        if (!string.IsNullOrEmpty(Application.absoluteURL))
+        {
+            OnDeepLinkActivated(Application.absoluteURL);
+        }
+    }
+
+    private void OnDestroy()
+    {
+        Application.deepLinkActivated -= OnDeepLinkActivated;
+    }
+
+    private void OnDeepLinkActivated(string url)
+    {
+        Debug.Log($"[RoasSmokeTest] Real deep link activated: {url}");
+        Roas.HandleDeepLink(url);
     }
 
     // [ContextMenu] makes each of these runnable from the ⋮ menu on this component in the

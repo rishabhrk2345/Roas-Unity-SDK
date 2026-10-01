@@ -23,6 +23,13 @@ internal sealed class RoasTestProjectIOSPostProcess : IPostprocessBuildWithRepor
     private const string PlaceholderText =
         "This helps us measure which ad brought you here, so we can keep improving the app.";
 
+    /// <summary>Matches the Android intent-filter scheme in
+    /// Assets/Plugins/Android/AndroidManifest.xml -- a real OS-level deep link
+    /// ("roastest://...") needs BOTH platforms registered the same way to be testable with
+    /// one shared tracking-link URL, or only one platform's tap would ever actually open the
+    /// app during a real-device test.</summary>
+    private const string DeepLinkScheme = "roastest";
+
     // After the package's own RoasIOSPostProcessBuild (callbackOrder 0), since both touch the
     // same exported project and order between unrelated postprocess steps shouldn't matter here,
     // but keeping it explicit avoids ever having to wonder.
@@ -36,12 +43,24 @@ internal sealed class RoasTestProjectIOSPostProcess : IPostprocessBuildWithRepor
         var plist = new PlistDocument();
         plist.ReadFromFile(plistPath);
 
-        if (plist.root.values.ContainsKey(UsageDescriptionKey)) return; // don't override a real one
+        if (!plist.root.values.ContainsKey(UsageDescriptionKey))
+        {
+            plist.root.SetString(UsageDescriptionKey, PlaceholderText);
+            Debug.Log($"[RoasTestProjectIOSPostProcess] Set a placeholder {UsageDescriptionKey} for local " +
+                      "testing -- write your own wording before shipping anything real.");
+        }
 
-        plist.root.SetString(UsageDescriptionKey, PlaceholderText);
+        if (!plist.root.values.ContainsKey("CFBundleURLTypes"))
+        {
+            var urlTypes = plist.root.CreateArray("CFBundleURLTypes");
+            var urlType = urlTypes.AddDict();
+            urlType.SetString("CFBundleURLName", PlayerSettings.applicationIdentifier);
+            urlType.CreateArray("CFBundleURLSchemes").AddString(DeepLinkScheme);
+            Debug.Log($"[RoasTestProjectIOSPostProcess] Registered the \"{DeepLinkScheme}://\" URL scheme " +
+                      "for real-device deep-link testing (Application.deepLinkActivated).");
+        }
+
         plist.WriteToFile(plistPath);
-        Debug.Log($"[RoasTestProjectIOSPostProcess] Set a placeholder {UsageDescriptionKey} for local " +
-                  "testing -- write your own wording before shipping anything real.");
     }
 }
 #endif
