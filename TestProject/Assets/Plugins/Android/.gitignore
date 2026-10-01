@@ -1,3 +1,5 @@
 *
 !.gitkeep
 !.gitignore
+!AndroidManifest.xml
+!AndroidManifest.xml.meta
