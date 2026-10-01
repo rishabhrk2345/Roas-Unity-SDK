@@ -1,5 +1,35 @@
 # Changelog
 
+## 0.1.3
+
+- **Fixed a real delivery-ordering bug** in `RoasTransport`: `Send()` enqueues a beacon
+  unconditionally and then calls `Flush()`, but `Flush()` is a no-op while a previous flush
+  is already running (`if (_flushing) return;`), and that earlier flush only ever processes
+  the queue snapshot it took when it started. Confirmed on a real iOS device: a deep link's
+  beacon, enqueued while the ordinary session-resume `identify()` calls were already
+  mid-flush, sat in the persisted queue for an entire extra app background/foreground cycle
+  before anything unrelated happened to call `Send()`/`Flush()` again and finally pushed it
+  out. `FlushCoroutine` now loops until a pass neither delivers anything nor finds the queue
+  empty, instead of a single pass, so nothing enqueued mid-flush is left stranded.
+- Real OS-level deep link delivery (a genuine tap on a registered URL scheme, not a direct
+  `HandleDeepLink()` call) is now verified end-to-end on both Android and iOS, confirmed by
+  reading the resulting `TouchPoint` rows from the backend, not just a device log line. This
+  had never actually been exercised before: every previous device build this project did
+  packaged the wrong (blank, auto-generated) scene -- see the TestProject-only
+  `RoasBuildScript` fix below -- so `RoasSmokeTest`'s code, deep-link handling included, was
+  never running on-device at all until now, on either platform.
+
+### TestProject (not part of the published package)
+
+- Fixed `RoasBuildScript.ScenePath` pointing at a path that never existed
+  (`Assets/Scenes/SmokeTest.unity`); `EnsureScene()` silently auto-created a blank scene
+  there on every build, so every Android and iOS device build this project ever made
+  packaged that blank scene instead of the real one with `SmokeTest` (`RoasSmokeTest` +
+  `RoasPurchaseTest`) attached. Found by noticing `RoasSmokeTest`'s own baseline log line
+  had never once appeared in any on-device log this project produced, despite working
+  correctly every time in Editor Play Mode (which uses whatever scene is actually open,
+  bypassing this constant entirely).
+
 ## 0.1.2
 
 - **Fixed a real production-safety bug**: Android's `RoasAndroidBridge.AdvertisingId()` and

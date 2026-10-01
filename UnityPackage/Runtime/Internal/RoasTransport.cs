@@ -54,19 +54,34 @@ namespace RoasSensor.Internal
         private IEnumerator FlushCoroutine()
         {
             _flushing = true;
-            var entries = _storage.QueuedBeacons();
-            var delivered = new HashSet<int>();
-            for (int i = 0; i < entries.Count; i++)
+            // Looped rather than a single pass: Send() enqueues unconditionally and then
+            // calls Flush(), which is a no-op while _flushing is already true (confirmed on a
+            // real device -- HandleDeepLink()'s beacon, enqueued while the session-resume
+            // identify() calls were already mid-flush, sat in storage for an entire extra app
+            // background/foreground cycle before it finally went out, since nothing else
+            // happened to call Send()/Flush() again in between). A single pass only ever sees
+            // the snapshot taken at the top, so anything enqueued during it would otherwise
+            // wait for some unrelated later call to flush it. Looping until a pass neither
+            // delivers nor finds anything new closes that gap without changing the "ignore a
+            // concurrent Flush() call" contract Send()'s callers rely on.
+            while (true)
             {
-                yield return PostCoroutine(entries[i], i, delivered, isClockRetry: false);
+                var entries = _storage.QueuedBeacons();
+                if (entries.Count == 0) break;
+                var delivered = new HashSet<int>();
+                for (int i = 0; i < entries.Count; i++)
+                {
+                    yield return PostCoroutine(entries[i], i, delivered, isClockRetry: false);
+                }
+                // Re-read-and-remove at removal time, not from the snapshot taken above — two
+                // Send() calls fired back-to-back (an app_open + its deferred-link probe,
+                // exactly like RoasSessionTracker's callers do) can enqueue between this flush
+                // starting and finishing; removing by original index against a fresh read
+                // would be wrong, so RemoveDelivered re-reads under its own lock and only the
+                // entries actually delivered are ever dropped.
+                _storage.RemoveDelivered(delivered);
+                if (delivered.Count == 0) break; // every remaining entry is retry-later (5xx/network); stop spinning
             }
-            // Re-read-and-remove at removal time, not from the snapshot taken above — two
-            // Send() calls fired back-to-back (an app_open + its deferred-link probe, exactly
-            // like RoasSessionTracker's callers do) can enqueue between this flush starting
-            // and finishing; removing by original index against a fresh read would be wrong,
-            // so RemoveDelivered re-reads under its own lock and only the entries actually
-            // delivered are ever dropped.
-            _storage.RemoveDelivered(delivered);
             _flushing = false;
         }
 
