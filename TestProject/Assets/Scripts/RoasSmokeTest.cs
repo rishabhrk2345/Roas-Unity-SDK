@@ -64,21 +64,28 @@ public sealed class RoasSmokeTest : MonoBehaviour
 
 #if UNITY_ANDROID && !UNITY_EDITOR
     private string _lastHandledIntentData;
+    private float _nextIntentPollTime;
 
     /// <summary>
     /// Fallback for a real gap confirmed on a real device: Android's own log confirmed the
     /// "roastest://" intent WAS delivered to the running Activity ("delivered to currently
     /// running top-most instance"), yet Application.deepLinkActivated never fired --
     /// confirmed via the backend DB showing no deeplink-sourced row at all, not just a
-    /// missing log line. Reads the Activity's current intent data directly via JNI instead
-    /// of trusting Unity's own deep-link event plumbing, triggered on every focus-regain
-    /// (which reliably fires when a backgrounded/already-running app is brought back via a
-    /// new intent, independent of whatever is or isn't wiring deepLinkActivated correctly
-    /// on this Unity version/Activity combination).
+    /// missing log line.
+    ///
+    /// OnApplicationFocus(true) was the first fallback tried and ALSO never fired here --
+    /// confirmed on-device, not assumed -- because the app never actually lost focus in the
+    /// first place: a tap on a link while the app is already the foreground singleTop
+    /// Activity delivers straight to onNewIntent with no backgrounding in between, so there
+    /// is no focus transition for that callback to catch. Polling getIntent().getDataString()
+    /// directly instead, since nothing about the OS's "already running" delivery path
+    /// reliably fires ANY Unity lifecycle callback at all.
     /// </summary>
-    private void OnApplicationFocus(bool hasFocus)
+    private void Update()
     {
-        if (!hasFocus) return;
+        if (Time.unscaledTime < _nextIntentPollTime) return;
+        _nextIntentPollTime = Time.unscaledTime + 0.5f;
+
         try
         {
             using (var unityPlayer = new AndroidJavaClass("com.unity3d.player.UnityPlayer"))
