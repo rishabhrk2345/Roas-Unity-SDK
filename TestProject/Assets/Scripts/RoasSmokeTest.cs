@@ -62,6 +62,43 @@ public sealed class RoasSmokeTest : MonoBehaviour
         Roas.HandleDeepLink(url);
     }
 
+#if UNITY_ANDROID && !UNITY_EDITOR
+    private string _lastHandledIntentData;
+
+    /// <summary>
+    /// Fallback for a real gap confirmed on a real device: Android's own log confirmed the
+    /// "roastest://" intent WAS delivered to the running Activity ("delivered to currently
+    /// running top-most instance"), yet Application.deepLinkActivated never fired --
+    /// confirmed via the backend DB showing no deeplink-sourced row at all, not just a
+    /// missing log line. Reads the Activity's current intent data directly via JNI instead
+    /// of trusting Unity's own deep-link event plumbing, triggered on every focus-regain
+    /// (which reliably fires when a backgrounded/already-running app is brought back via a
+    /// new intent, independent of whatever is or isn't wiring deepLinkActivated correctly
+    /// on this Unity version/Activity combination).
+    /// </summary>
+    private void OnApplicationFocus(bool hasFocus)
+    {
+        if (!hasFocus) return;
+        try
+        {
+            using (var unityPlayer = new AndroidJavaClass("com.unity3d.player.UnityPlayer"))
+            using (var activity = unityPlayer.GetStatic<AndroidJavaObject>("currentActivity"))
+            using (var intent = activity.Call<AndroidJavaObject>("getIntent"))
+            {
+                var dataString = intent.Call<string>("getDataString");
+                if (string.IsNullOrEmpty(dataString) || dataString == _lastHandledIntentData) return;
+                _lastHandledIntentData = dataString;
+                Debug.Log($"[RoasSmokeTest] (JNI fallback) getIntent().getDataString() = {dataString}");
+                Roas.HandleDeepLink(dataString);
+            }
+        }
+        catch (System.Exception e)
+        {
+            Debug.LogError($"[RoasSmokeTest] JNI fallback intent read failed: {e}");
+        }
+    }
+#endif
+
     // [ContextMenu] makes each of these runnable from the ⋮ menu on this component in the
     // Inspector while in Play Mode (right-click the component header, or its overflow menu) --
     // no need to wire uGUI buttons just to smoke-test. Also wire them to real buttons if you'd
