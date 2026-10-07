@@ -1,6 +1,6 @@
 {
   "name": "com.roassensor.unity-sdk",
-  "version": "0.1.3",
+  "version": "0.1.4",
   "displayName": "ROASSensor SDK",
   "description": "Attribution + revenue tracking for Unity apps and games -- installs, sessions, identity, funnel events and purchase verification against ROASSensor's collector API. Mirrors the wire contract of the ROASSensor Android (Kotlin) and iOS (Swift) SDKs.",
   "unity": "2021.3",

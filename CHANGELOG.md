@@ -1,5 +1,25 @@
 # Changelog
 
+## 0.1.4
+
+- **Fixed a crash on every Android launch** (found and fixed by a customer integrating
+  this SDK into a production game, not by this repo's own testing). The 0.1.2 fix for
+  the main-thread-blocking issue below moved `AdvertisingId()`/`AppSetId()` onto a
+  `Task.Run` background thread — but a `.NET` ThreadPool thread is not attached to the
+  JVM, and any `AndroidJavaObject` call from an unattached thread aborts the process
+  (`SIGABRT`), which no C# `try`/`catch` can intercept. Fixed by wrapping the JNI work
+  in each background task with `AndroidJNI.AttachCurrentThread()` /
+  `DetachCurrentThread()`, the standard Unity pattern for calling into Android from a
+  thread Unity didn't create. This repo's own device testing (Mono scripting backend)
+  never hit this; it's unclear whether that's luck, a Mono-vs-IL2CPP difference, or
+  device-specific — the fix is correct regardless of why our own pass missed it.
+- **Fixed `Roas.Initialize`/`Identify`/`ReportFirstOpen` sending `external_id: ""`**
+  (same report): a `RoasSettings` asset serializes an *unset* string field as `""`,
+  never `null`, so `customerUserId != null` was true even for a blank field — sending
+  an empty `external_id` the collector rejects with HTTP 400 on every launch after the
+  first. Fixed by checking `!string.IsNullOrEmpty(customerUserId)` in all three places
+  instead.
+
 ## 0.1.3
 
 - **Fixed a real delivery-ordering bug** in `RoasTransport`: `Send()` enqueues a beacon

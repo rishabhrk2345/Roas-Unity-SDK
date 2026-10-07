@@ -136,7 +136,11 @@ namespace RoasSensor
             else
             {
                 if (session.Started) SendSessionStart(session);
-                if (customerUserId != null) Identify(customerUserId: customerUserId);
+                // != null is not enough: a RoasSettings asset serializes an unset string field
+                // as "", never null, so a blank Customer User Id would still pass that check
+                // and send external_id: "" -- rejected by the collector with HTTP 400 on every
+                // launch after the first. Found and fixed by a customer integrating this SDK.
+                if (!string.IsNullOrEmpty(customerUserId)) Identify(customerUserId: customerUserId);
             }
         }
 
@@ -194,7 +198,8 @@ namespace RoasSensor
             if (!string.IsNullOrEmpty(emailHash)) body.Put("email_hash", emailHash);
             var phoneHash = RoasHashing.HashPhone(phone);
             if (!string.IsNullOrEmpty(phoneHash)) body.Put("phone_hash", phoneHash);
-            if (customerUserId != null) body.Put("external_id", customerUserId);
+            // != null is not enough -- see the identical note in Initialize().
+            if (!string.IsNullOrEmpty(customerUserId)) body.Put("external_id", customerUserId);
             if (!body.Has("email_hash") && !body.Has("phone_hash") && !body.Has("external_id")) return;
 
             // The advertising id belongs on THIS beacon too, not just the install -- the server
@@ -206,14 +211,27 @@ namespace RoasSensor
 #if UNITY_ANDROID && !UNITY_EDITOR
             // AdvertisingId() makes a blocking Binder IPC call to Play Services -- never call
             // it on the main thread, or a slow device stalls this call for its duration.
+            // Task.Run is a .NET ThreadPool thread, which the JVM has never seen -- any
+            // AndroidJavaObject call from it aborts the process (SIGABRT, so the try/catch
+            // inside RoasAndroidBridge never sees it either) unless the thread is explicitly
+            // attached first. A real crash on every Android launch, found and fixed by a
+            // customer integrating this SDK into a production game.
             Task.Run(() =>
             {
-                var deviceId = RoasAndroidBridge.AdvertisingId();
-                _runtime.RunOnMainThread(() =>
+                AndroidJNI.AttachCurrentThread();
+                try
                 {
-                    if (!string.IsNullOrEmpty(deviceId)) body.Put("device_id", deviceId);
-                    _transport.Send("/api/tracking/mobile/identify", body);
-                });
+                    var deviceId = RoasAndroidBridge.AdvertisingId();
+                    _runtime.RunOnMainThread(() =>
+                    {
+                        if (!string.IsNullOrEmpty(deviceId)) body.Put("device_id", deviceId);
+                        _transport.Send("/api/tracking/mobile/identify", body);
+                    });
+                }
+                finally
+                {
+                    AndroidJNI.DetachCurrentThread();
+                }
             });
 #elif UNITY_IOS && !UNITY_EDITOR
             var idfa = RoasIOSBridge.AdvertisingIdentifier();
@@ -424,7 +442,8 @@ namespace RoasSensor
 
             var integritySignals = RoasDeviceIntegrity.Signals();
             if (integritySignals.Count > 0) body.Put("integrity_signals", integritySignals);
-            if (customerUserId != null) body.Put("external_id", customerUserId);
+            // != null is not enough -- see the identical note in Initialize().
+            if (!string.IsNullOrEmpty(customerUserId)) body.Put("external_id", customerUserId);
 
 #if UNITY_ANDROID && !UNITY_EDITOR
             // AdvertisingId()/AppSetId() each make a blocking Binder IPC call to Play Services
@@ -434,22 +453,36 @@ namespace RoasSensor
             // Android's ANR threshold. The native Kotlin SDK backgrounds this for the same
             // reason (see DeviceId.kt/AppSetId.kt); this mirrors it rather than trusting a
             // coroutine to count as "background" the way it would for a pure network call.
+            //
+            // Task.Run is a .NET ThreadPool thread, which the JVM has never seen -- any
+            // AndroidJavaObject call from it aborts the process (SIGABRT, so the try/catch
+            // inside RoasAndroidBridge never sees it either) unless the thread is explicitly
+            // attached first. A real crash on every Android launch, found and fixed by a
+            // customer integrating this SDK into a production game.
             Task.Run(() =>
             {
-                var gaid = RoasAndroidBridge.AdvertisingId();
-                var appSetId = RoasAndroidBridge.AppSetId();
-                _runtime.RunOnMainThread(() =>
+                AndroidJNI.AttachCurrentThread();
+                try
                 {
-                    if (!string.IsNullOrEmpty(gaid)) body.Put("device_id", gaid);
-                    if (!string.IsNullOrEmpty(appSetId)) body.Put("app_set_id", appSetId);
-
-                    RoasAndroidBridge.FetchInstallReferrer(result =>
+                    var gaid = RoasAndroidBridge.AdvertisingId();
+                    var appSetId = RoasAndroidBridge.AppSetId();
+                    _runtime.RunOnMainThread(() =>
                     {
-                        ApplyReferrerResult(body, result);
-                        _transport.Send("/api/tracking/mobile/first-open", body);
-                        _storage.InstallReported = true;
+                        if (!string.IsNullOrEmpty(gaid)) body.Put("device_id", gaid);
+                        if (!string.IsNullOrEmpty(appSetId)) body.Put("app_set_id", appSetId);
+
+                        RoasAndroidBridge.FetchInstallReferrer(result =>
+                        {
+                            ApplyReferrerResult(body, result);
+                            _transport.Send("/api/tracking/mobile/first-open", body);
+                            _storage.InstallReported = true;
+                        });
                     });
-                });
+                }
+                finally
+                {
+                    AndroidJNI.DetachCurrentThread();
+                }
             });
 #elif UNITY_IOS && !UNITY_EDITOR
             var idfa = RoasIOSBridge.AdvertisingIdentifier();
