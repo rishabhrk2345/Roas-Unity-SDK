@@ -1,5 +1,21 @@
 # Changelog
 
+## 0.1.5
+
+- **Fixed iOS purchase attribution: the visitor id was generated lowercase.**
+  `RoasStorage.VisitorId` used `Guid.NewGuid().ToString("N")`, which .NET renders
+  in *lowercase* hex, so the vid was `"rs" + 32 lowercase`. The rest of the system
+  uses `"rs" + 32 UPPERCASE` (the native iOS SDK's `UUID().uuidString` is uppercase,
+  and the collector reconstructs the vid from StoreKit's returned `appAccountToken`
+  with `.upper()`). The consequence was iOS-only and silent: an install stored a
+  lowercase vid, but the verified purchase came back reconstructed as uppercase, so
+  the sale matched no install and booked as organic — real revenue that never
+  attributed to the campaign that earned it, under-reporting iOS ROAS. Fixed by
+  generating the vid uppercase (`.ToUpperInvariant()`). Android was unaffected
+  (Play's `obfuscatedAccountId` round-trips the exact string with no case change).
+  Found by a cross-check against the collector's `appAccountToken` reconstruction
+  before live Unity testing, not by this repo's own (Editor-only) pass.
+
 ## 0.1.4
 
 - **Fixed a crash on every Android launch** (found and fixed by a customer integrating

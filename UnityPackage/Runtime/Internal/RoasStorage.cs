@@ -47,7 +47,15 @@ namespace RoasSensor.Internal
                 {
                     var existing = PlayerPrefs.GetString(KeyVid, string.Empty);
                     if (!string.IsNullOrEmpty(existing)) return existing;
-                    var vid = "rs" + Guid.NewGuid().ToString("N");
+                    // UPPERCASE hex, to match the visitor-id convention the collector
+                    // and the native SDKs use ("rs" + 32 uppercase hex). This is
+                    // load-bearing on iOS: StoreKit's appAccountToken is a UUID, the
+                    // native bridge uppercases the vid to form it, and the collector
+                    // reconstructs the vid from Apple's returned token with .upper().
+                    // A lowercase vid here would store the install lowercase while the
+                    // verified purchase reconstructs uppercase, so the sale would match
+                    // no install and read as organic. .NET's "N" format is lowercase.
+                    var vid = "rs" + Guid.NewGuid().ToString("N").ToUpperInvariant();
                     PlayerPrefs.SetString(KeyVid, vid);
                     PlayerPrefs.Save();
                     return vid;
