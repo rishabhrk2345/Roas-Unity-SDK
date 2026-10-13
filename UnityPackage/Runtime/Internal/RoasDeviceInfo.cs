@@ -14,7 +14,12 @@ namespace RoasSensor.Internal
     /// </summary>
     internal static class RoasDeviceInfo
     {
-        public const string SdkVersion = "0.1.0";
+        // Stamped onto every beacon as `sdk_version`, and the only version the
+        // collector and the Testing stream ever see. MUST track
+        // UnityPackage/package.json by hand — Unity has no runtime read of the
+        // package manifest outside the Editor — so bump both together. (It sat at
+        // "0.1.0" through 0.1.1-0.1.4, which made every beacon misreport its build.)
+        public const string SdkVersion = "0.1.5";
 
         public static void Describe(RoasJson body)
         {

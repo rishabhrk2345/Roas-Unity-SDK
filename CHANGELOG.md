@@ -15,6 +15,11 @@
   (Play's `obfuscatedAccountId` round-trips the exact string with no case change).
   Found by a cross-check against the collector's `appAccountToken` reconstruction
   before live Unity testing, not by this repo's own (Editor-only) pass.
+- **Fixed every beacon reporting `sdk_version: "0.1.0"`.** The constant in
+  `RoasDeviceInfo` was never bumped past the first release, so every touchpoint
+  from 0.1.1-0.1.4 misreported its build in the collector and the Testing stream.
+  Set to the real version, with a comment that it must track `package.json` (Unity
+  has no runtime read of the manifest outside the Editor).
 
 ## 0.1.4
 
