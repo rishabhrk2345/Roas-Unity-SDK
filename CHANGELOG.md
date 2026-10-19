@@ -1,5 +1,23 @@
 # Changelog
 
+## 0.1.6
+
+### TestProject (not part of the published package)
+
+- **Added an on-device purchase test button.** The previous `[ContextMenu]`
+  methods on `RoasSmokeTest` / `RoasPurchaseTest` only work in the Unity Editor
+  Inspector; they are silently absent on a real device build. Added a UI Canvas +
+  Button to `unity roas test.unity` wired to `RoasSmokeTest.TestVerifyPurchaseAndroid`,
+  so `Roas.VerifyPurchase()` can now be triggered by a tap on the device rather
+  than requiring the Editor.
+- **Purchase path verified on a real Android device (Xiaomi, Android 15).** Tapping
+  the button reaches `POST /api/tracking/mobile/purchase` with the correct signed
+  payload; the collector responds 422 (no Play service account on the test site),
+  which is the designed response. The full client-to-server chain — HMAC-signed
+  beacon, transport, collector parse — is confirmed working. The only remaining
+  step for a real money booking is adding a Play service account to the site.
+
+
 ## 0.1.5
 
 - **Fixed iOS purchase attribution: the visitor id was generated lowercase.**
