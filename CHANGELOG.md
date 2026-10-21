@@ -1,5 +1,22 @@
 # Changelog
 
+## 0.1.7
+
+- **Fixed iOS batchmode builds requiring manual Xcode steps after every export.**
+  `RoasIOSPostProcessBuild` ran at `callbackOrder 0`, but `com.unity.purchasing`'s
+  own post-process runs at a higher order and rewrites the `.pbxproj`, discarding the
+  AdSupport / AppTrackingTransparency / AdServices / StoreKit framework additions.
+  Bumped to `callbackOrder 100` so the package post-process always runs last.
+- **Fixed every iOS batchmode build failing to sign on a free Personal Team account.**
+  `com.unity.purchasing` adds the In-App Purchase capability to every target's
+  `systemCapabilities` block automatically. A Personal Team cannot create a provisioning
+  profile that includes IAP, so Xcode refused to build until the capability was removed by
+  hand. `RoasIOSPostProcessBuild` now strips all `com.apple.InAppPurchase` entries from
+  the `.pbxproj` in the same pass as the framework additions, since this SDK verifies
+  receipts server-side and never needs the StoreKit entitlement.
+- `RoasTestProjectIOSPostProcess` (TestProject-only) bumped to `callbackOrder 101`
+  to maintain its ordering after the package post-process.
+
 ## 0.1.6
 
 ### TestProject (not part of the published package)
