@@ -30,10 +30,8 @@ internal sealed class RoasTestProjectIOSPostProcess : IPostprocessBuildWithRepor
     /// app during a real-device test.</summary>
     private const string DeepLinkScheme = "roastest";
 
-    // After the package's own RoasIOSPostProcessBuild (callbackOrder 0), since both touch the
-    // same exported project and order between unrelated postprocess steps shouldn't matter here,
-    // but keeping it explicit avoids ever having to wonder.
-    public int callbackOrder => 1;
+    // After RoasIOSPostProcessBuild (callbackOrder 100) which strips IAP and adds frameworks.
+    public int callbackOrder => 101;
 
     public void OnPostprocessBuild(BuildReport report)
     {

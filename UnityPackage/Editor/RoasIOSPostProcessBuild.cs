@@ -1,4 +1,6 @@
 #if UNITY_IOS
+using System.IO;
+using System.Text.RegularExpressions;
 using UnityEditor;
 using UnityEditor.Build;
 using UnityEditor.Build.Reporting;
@@ -9,14 +11,15 @@ namespace RoasSensor.Editor
     /// <summary>
     /// Links the frameworks <c>Runtime/Plugins/iOS/RoasNative.mm</c> needs
     /// (AdSupport, AppTrackingTransparency, AdServices, StoreKit) into the generated Xcode
-    /// project automatically, so integrating this package needs no manual Xcode step beyond
-    /// setting <c>NSUserTrackingUsageDescription</c> in Player Settings (Unity does not let a
-    /// package inject a usage-description string on your behalf, since its wording is a
-    /// product/legal decision, not this SDK's to make).
+    /// project and strips the In-App Purchase capability that <c>com.unity.purchasing</c>
+    /// adds automatically.
+    ///
+    /// callbackOrder 100 — runs after Unity IAP's own post-process (which rewrites the
+    /// pbxproj at a lower order), so our framework additions are not overwritten.
     /// </summary>
     internal sealed class RoasIOSPostProcessBuild : IPostprocessBuildWithReport
     {
-        public int callbackOrder => 0;
+        public int callbackOrder => 100;
 
         public void OnPostprocessBuild(BuildReport report)
         {
@@ -26,21 +29,31 @@ namespace RoasSensor.Editor
             var project = new PBXProject();
             project.ReadFromFile(pbxPath);
 
-#if UNITY_2019_3_OR_NEWER
             var targetGuid = project.GetUnityFrameworkTargetGuid();
-#else
-            var targetGuid = project.TargetGuidByName(PBXProject.GetUnityTargetName());
-#endif
 
             project.AddFrameworkToProject(targetGuid, "AdSupport.framework", true);
             project.AddFrameworkToProject(targetGuid, "AppTrackingTransparency.framework", true);
             project.AddFrameworkToProject(targetGuid, "AdServices.framework", true);
-            project.AddFrameworkToProject(targetGuid, "StoreKit.framework", true);
+            project.AddFrameworkToProject(targetGuid, "StoreKit.framework", false);
 
             project.WriteToFile(pbxPath);
 
-            UnityEngine.Debug.Log("[RoasSensor] Linked AdSupport/AppTrackingTransparency/AdServices/StoreKit into the Xcode project. " +
-                                   "Remember to set 'Privacy - Tracking Usage Description' in Player Settings -> iOS -> Other Settings.");
+            // com.unity.purchasing adds the In-App Purchase capability to every target's
+            // systemCapabilities block. A free Personal Team cannot sign an app with IAP,
+            // and this SDK verifies receipts server-side anyway. Strip it via a text pass
+            // after WriteToFile because PBXProject has no public RemoveCapability API.
+            var pbxContent = File.ReadAllText(pbxPath);
+            var patched = Regex.Replace(
+                pbxContent,
+                @"[ \t]+com\.apple\.InAppPurchase = \{[^}]+\};\n",
+                "");
+            if (patched != pbxContent)
+            {
+                File.WriteAllText(pbxPath, patched);
+                UnityEngine.Debug.Log("[RoasSensor] Removed In-App Purchase capability from all targets.");
+            }
+
+            UnityEngine.Debug.Log("[RoasSensor] iOS post-process complete: AdSupport/AppTrackingTransparency/AdServices/StoreKit linked.");
         }
     }
 }
