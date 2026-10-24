@@ -1,5 +1,23 @@
 # Changelog
 
+## 0.1.8
+
+- **Fixed every game that kept the default collector host sending nothing.** The default
+  was `https://api.roassensor.com`, which has never had DNS, so every beacon failed with a
+  network error and retried forever. The default is now `https://core.roassensor.com`. Because
+  `baseUrl` is serialized, an existing `RoasSettings.asset` still holds the old string, so the
+  runtime maps it (and a blank field) to the real host, the inspector rewrites it the next time
+  the asset is loaded in the editor, and beacons a device queued against the dead host are sent
+  to the current one instead of waiting forever. A host you chose yourself is left alone.
+  `Roas.Initialize(..., baseUrl: ...)` applies the same rule.
+- **Fixed `Roas.Track()` losing an event over one bad property.** A `NaN` or infinity was
+  written as the bare word `NaN`, which is not JSON, so the server refused the whole event.
+  Properties are now cleaned the way the Android and iOS SDKs clean them: NaN, infinity and
+  null are dropped, `DateTime` / `DateTimeOffset` become ISO-8601 UTC, a `Uri` and unknown
+  types become strings, and nested dictionaries and lists are cleaned recursively. Every other
+  beacon body writes NaN as `null` as a backstop.
+- New EditMode tests: `RoasHostsTests`, `RoasJsonTests`.
+
 ## 0.1.7
 
 - **Fixed iOS batchmode builds requiring manual Xcode steps after every export.**

@@ -19,7 +19,7 @@ namespace RoasSensor
     public sealed class RoasSettings : ScriptableObject
     {
         public const string ResourcePath = "RoasSettings";
-        internal const string DefaultBaseUrl = "https://api.roassensor.com";
+        internal const string DefaultBaseUrl = Internal.RoasHosts.Default;
 
         [Header("Android")]
         [Tooltip("Setup -> your Android app -> Public key")]
@@ -81,6 +81,18 @@ namespace RoasSensor
 #endif
         }
 
-        internal string ResolvedBaseUrl() => string.IsNullOrEmpty(baseUrl) ? DefaultBaseUrl : baseUrl;
+        // Blank, or the dead default an asset saved before 0.1.8 still holds, both mean
+        // production (see RoasHosts).
+        internal string ResolvedBaseUrl() => Internal.RoasHosts.Normalize(baseUrl);
+
+#if UNITY_EDITOR
+        // Show the host the SDK will actually use: an asset saved before 0.1.8 holds the dead
+        // default, so the inspector would keep displaying it. A host the developer chose is
+        // left alone.
+        private void OnValidate()
+        {
+            if (Internal.RoasHosts.IsDead(baseUrl)) baseUrl = DefaultBaseUrl;
+        }
+#endif
     }
 }

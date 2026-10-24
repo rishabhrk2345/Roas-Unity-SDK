@@ -88,7 +88,9 @@ namespace RoasSensor.Internal
         private IEnumerator PostCoroutine(RoasStorage.QueueEntry entry, int index, HashSet<int> delivered, bool isClockRetry)
         {
             var payload = Encoding.UTF8.GetBytes(entry.Body);
-            using (var request = new UnityWebRequest(entry.Url, "POST"))
+            // A beacon queued by a pre-0.1.8 build against the dead default host is sent to the
+            // current one instead; see RoasHosts.Retarget.
+            using (var request = new UnityWebRequest(RoasHosts.Retarget(entry.Url, _baseUrl), "POST"))
             {
                 request.uploadHandler = new UploadHandlerRaw(payload);
                 request.downloadHandler = new DownloadHandlerBuffer();

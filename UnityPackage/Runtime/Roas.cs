@@ -107,7 +107,7 @@ namespace RoasSensor
                 _storage = new RoasStorage();
                 ResetIfDataWasResurrected();
                 _runtime = RoasRuntime.GetOrCreate();
-                _transport = new RoasTransport(string.IsNullOrEmpty(baseUrl) ? RoasSettings.DefaultBaseUrl : baseUrl, _storage, appSecret, _runtime)
+                _transport = new RoasTransport(RoasHosts.Normalize(baseUrl), _storage, appSecret, _runtime)
                 {
                     LogLevel = LogLevel,
                 };
@@ -248,12 +248,9 @@ namespace RoasSensor
             if (!_initialized) return;
             var body = BaseBody().Put("name", RoasEventKeys.Key(evt));
             if (name != null) body.Put("label", name);
-            if (properties != null)
-            {
-                var props = new RoasJson();
-                foreach (var kv in properties) props.Put(kv.Key, kv.Value);
-                body.Put("props", props);
-            }
+            // Cleaned the way the native SDKs clean them (a NaN is dropped, a DateTime becomes
+            // ISO-8601 UTC), so the server never refuses the event over one bad value.
+            if (properties != null) body.Put("props", RoasJson.FromProperties(properties));
             _transport.Send("/api/tracking/mobile/events", body);
         }
 
