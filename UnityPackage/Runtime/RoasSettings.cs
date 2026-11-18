@@ -29,6 +29,14 @@ namespace RoasSensor
                  "real secret into source control -- inject it at build time instead.")]
         public string androidAppSecret;
 
+        [Tooltip("Optional. The Facebook app id of the Meta app that runs this game's install ads " +
+                 "(the app whose Install Referrer Decryption Key you saved in ROASSensor, under " +
+                 "Attribution). With it the first launch also reads Meta's own install referrer, " +
+                 "which sees installs after an ad was only viewed or tapped in an earlier session. " +
+                 "Needs the <queries> entries from the package README in the game's Android manifest. " +
+                 "Digits only. Leave blank to read Google Play's referrer alone.")]
+        public string androidMetaAppId;
+
         [Header("iOS")]
         [Tooltip("Setup -> your iOS app -> Public key")]
         public string iosPublicKey;
@@ -67,6 +75,16 @@ namespace RoasSensor
             return iosPublicKey;
 #else
             return androidPublicKey; // editor/desktop testing default
+#endif
+        }
+
+        // Android only: iOS has no equivalent of Meta's install-referrer provider.
+        internal string MetaAppIdForCurrentPlatform()
+        {
+#if UNITY_ANDROID
+            return androidMetaAppId;
+#else
+            return null;
 #endif
         }
 

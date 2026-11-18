@@ -1,5 +1,16 @@
 # Changelog
 
+## Unreleased
+
+- **Meta's own install referrer (Android, optional).** `Roas.Initialize(..., metaAppId: ...)` (or
+  the settings asset's *Android Meta App Id*) makes the first launch also read Meta's referrer from
+  the Facebook / Instagram / Facebook Lite app and send it beside Google Play's, so an install after
+  an ad was only viewed, or tapped in an earlier session, is no longer credited to nothing. Mirrors
+  the native Android SDK's 0.1.12 `MetaInstallReferrerReader`. The game's manifest needs three
+  `<queries>` entries (README). **Written without a Unity editor and not yet run: build and test it
+  before tagging a release.**
+- New EditMode tests: `RoasMetaReferrerTests`.
+
 ## 0.1.8
 
 - **Fixed every game that kept the default collector host sending nothing.** The default

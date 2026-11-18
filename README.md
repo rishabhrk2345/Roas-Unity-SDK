@@ -100,6 +100,41 @@ Roas.VerifyPurchase(transactionId: transactionId);                              
 Roas.RequestTrackingAuthorization();
 ```
 
+## Meta install ads (Android, optional, unreleased)
+
+Google Play's install referrer only carries a *same-session tap* on a Meta ad. To also see an
+install after an ad was only **viewed**, or tapped in an earlier session, give the SDK the
+**Facebook app id** of the Meta app that runs your install ads (the app whose *Install Referrer
+Decryption Key* you saved in ROASSensor, under Attribution):
+
+- in the settings asset, **Android Meta App Id**, or
+- `Roas.Initialize(key, metaAppId: "1234567890");` (digits only).
+
+On first launch the SDK then also reads Meta's own install referrer from the Facebook, Instagram
+or Facebook Lite app (a `ContentProvider`) and sends it beside Google's. It is read only when an id
+is set, ignored on iOS, and the answer stays encrypted until the collector opens it with your key.
+
+**Your game's Android manifest must declare the three apps** (Android 11+ package visibility), or
+their providers are invisible and every read reports `NOT_AVAILABLE`, exactly as if Facebook were
+not installed. In Unity, enable *Player Settings → Publishing Settings → Custom Main Manifest*, then
+add inside `<manifest>` of `Assets/Plugins/Android/AndroidManifest.xml`:
+
+```xml
+<queries>
+    <package android:name="com.facebook.katana" />
+    <package android:name="com.instagram.android" />
+    <package android:name="com.facebook.lite" />
+</queries>
+```
+
+If the file already has a `<queries>` block, add the three `<package>` lines to it. This package
+cannot add them for you: it ships no Android library folder, by design (see
+`RoasAndroidBridge.cs`). With the Debug log level, `adb logcat -s Unity` prints a
+`[RoasSensor] meta referrer:` line with what Meta's app returned.
+
+**Status: written without a Unity editor and not yet run.** Verify it on a device before relying on
+it (see *Testing*).
+
 ## Deep links: two halves, both required
 
 `Roas.HandleDeepLink(url)` only parses a URL you hand it — getting that URL out of Unity needs
@@ -171,7 +206,12 @@ Mirrors every other ROASSensor SDK exactly, and must not drift:
 ## Testing
 
 `Tests/Editor` has NUnit parity tests for hashing, HMAC signing and session-rollover behaviour —
-open via Window → General → Test Runner → EditMode.
+open via Window → General → Test Runner → EditMode. `RoasMetaReferrerTests` covers the
+platform-independent half of Meta's install referrer (app id rules, which answer wins, the beacon
+fields) and mirrors the Android SDK's `MetaInstallReferrerReaderTest`; **it has not been run yet**.
+Headless: `Unity -batchmode -projectPath TestProject -runTests -testPlatform EditMode -logFile -`.
+The Android read itself (`RoasAndroidBridge.ReadMetaInstallReferrer`, raw JNI) needs a device with
+a Facebook app and a Meta ad to exercise end to end.
 
 `TestProject/` is a minimal Unity project scaffold (referencing this package by local path) for
 building on a real device with Xcode/an Android SDK available — see `TestProject/README.md`.

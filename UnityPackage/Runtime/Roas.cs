@@ -39,6 +39,8 @@ namespace RoasSensor
         private static readonly object InitLock = new object();
         private static bool _initialized;
         private static string _publicKey;
+        // The Facebook app id for Meta's own install referrer (Android only); null = Google's alone.
+        private static string _metaAppId;
         private static RoasStorage _storage;
         private static RoasTransport _transport;
         private static RoasSessionTracker _sessions;
@@ -71,7 +73,7 @@ namespace RoasSensor
                 return;
             }
             SetLogLevel(settings.logLevel);
-            Initialize(publicKey, settings.customerUserId, settings.ResolvedBaseUrl(), settings.AppSecretForCurrentPlatform());
+            Initialize(publicKey, settings.customerUserId, settings.ResolvedBaseUrl(), settings.AppSecretForCurrentPlatform(), settings.MetaAppIdForCurrentPlatform());
             if (settings.requestTrackingAuthorizationOnLaunch)
             {
 #if UNITY_IOS && !UNITY_EDITOR
@@ -98,12 +100,21 @@ namespace RoasSensor
         /// LAST on purpose, and it must stay last -- mirrors the Kotlin/Swift SDKs' parameter
         /// order exactly, since a Flutter-style bridge binding these positionally is exactly how
         /// a parameter inserted mid-list once silently rebound every existing call one slot along.</param>
-        public static void Initialize(string publicKey, string customerUserId = null, string baseUrl = null, string appSecret = null)
+        /// <param name="metaAppId">(Android only) the Facebook app id of the Meta app that runs this
+        /// game's install ads, the same app whose Install Referrer Decryption Key you saved in
+        /// ROASSensor (Attribution). With it the first launch also reads Meta's own install
+        /// referrer from the Facebook / Instagram app, which sees an install after an ad was only
+        /// VIEWED, or tapped in an earlier session, as well as the same-session taps Google Play's
+        /// referrer carries. Needs the three &lt;queries&gt; entries from this package's README in
+        /// the game's Android manifest. Ignored on iOS and when null or blank. LAST, like
+        /// <c>appSecret</c> before it, so existing positional calls keep their meaning.</param>
+        public static void Initialize(string publicKey, string customerUserId = null, string baseUrl = null, string appSecret = null, string metaAppId = null)
         {
             lock (InitLock)
             {
                 if (_initialized) return;
                 _publicKey = publicKey;
+                _metaAppId = metaAppId;
                 _storage = new RoasStorage();
                 ResetIfDataWasResurrected();
                 _runtime = RoasRuntime.GetOrCreate();
@@ -159,7 +170,7 @@ namespace RoasSensor
                 return;
             }
             SetLogLevel(settings.logLevel);
-            Initialize(settings.PublicKeyForCurrentPlatform(), settings.customerUserId, settings.ResolvedBaseUrl(), settings.AppSecretForCurrentPlatform());
+            Initialize(settings.PublicKeyForCurrentPlatform(), settings.customerUserId, settings.ResolvedBaseUrl(), settings.AppSecretForCurrentPlatform(), settings.MetaAppIdForCurrentPlatform());
         }
 
         /// <summary>The stable visitor id for this install. Pass it to RevenueCat/your billing
@@ -463,10 +474,22 @@ namespace RoasSensor
                 {
                     var gaid = RoasAndroidBridge.AdvertisingId();
                     var appSetId = RoasAndroidBridge.AppSetId();
+                    // Meta's own install referrer: a local ContentProvider read, so it belongs on
+                    // this JVM-attached background thread too. Nothing without a Facebook app id,
+                    // and never a reason to lose the install.
+                    var meta = RoasAndroidBridge.ReadMetaInstallReferrer(_metaAppId);
                     _runtime.RunOnMainThread(() =>
                     {
                         if (!string.IsNullOrEmpty(gaid)) body.Put("device_id", gaid);
                         if (!string.IsNullOrEmpty(appSetId)) body.Put("app_set_id", appSetId);
+                        // Rides beside whichever channel answers below, never instead of it: the
+                        // collector fills with it only an install that named no source.
+                        RoasMetaReferrer.WriteTo(body, meta);
+                        if (LogLevel >= RoasLogLevel.Debug && meta != null)
+                        {
+                            Debug.Log($"[RoasSensor] meta referrer: {meta.Status}"
+                                      + (meta.Referrer != null ? $" is_ct={meta.IsClick} at={meta.AtSeconds} len={meta.Referrer.Length} value={meta.Referrer}" : ""));
+                        }
 
                         RoasAndroidBridge.FetchInstallReferrer(result =>
                         {
