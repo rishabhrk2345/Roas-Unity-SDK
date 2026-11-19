@@ -12,6 +12,14 @@
 <manifest
     xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools">
+    <!-- Android 11+ package visibility for Meta's install-referrer providers
+         (Roas.Initialize metaAppId / RoasSettings Android Meta App Id). Without these three
+         entries every read reports NOT_AVAILABLE, exactly as if Facebook were not installed. -->
+    <queries>
+        <package android:name="com.facebook.katana" />
+        <package android:name="com.instagram.android" />
+        <package android:name="com.facebook.lite" />
+    </queries>
     <application>
         <activity android:name="com.unity3d.player.UnityPlayerActivity"
                   android:theme="@style/UnityThemeSelector">
