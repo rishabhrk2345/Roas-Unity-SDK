@@ -21,7 +21,7 @@ namespace RoasSensor.Internal
         // "0.1.0" through 0.1.1-0.1.4, which made every beacon misreport its build,
         // and then at "0.1.5" through 0.1.6-0.1.8, found when a 0.1.9 device test showed
         // `sdk 0.1.5` on an install built from 0.1.8 sources.)
-        public const string SdkVersion = "0.1.9";
+        public const string SdkVersion = "0.1.10";
 
         public static void Describe(RoasJson body)
         {

@@ -1,13 +1,16 @@
 # Changelog
 
-## Unreleased
+## 0.1.10
 
 - **Google ad consent (Android).** `Roas.SetGoogleConsent(adUserData, adPersonalization)` relays the two
   Google consent-mode answers from your consent banner, persisted and held until `Initialize` if called
   first, and every beacon carries them once set. Needed for people in the EU, the EEA and the UK when you
   measure Google App campaigns; mirrors the native Android SDK's `setGoogleConsent` (0.1.11). A no-op on
   iOS. On Android, `VerifyPurchase` now also carries the advertising id, as the native SDK does.
-- New EditMode tests: `RoasGoogleConsentTests`. **Not yet run, and not yet checked on a device.**
+  Checked on an Android emulator against the collector: both flags arrive on the first beacon, and a
+  refusal arrives as `false`, not as an absent key. **Not yet exercised: the advertising id on a verified
+  purchase** (it needs a device with Play Services and a real purchase).
+- New EditMode tests: `RoasGoogleConsentTests`.
 
 ## 0.1.9
 

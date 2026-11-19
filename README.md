@@ -139,7 +139,7 @@ read credited a click, a view and the query-string shape correctly and ignored s
 missing answers. What Meta's real app returns has not been seen yet. Verify it on a device before relying on
 it (see *Testing*).
 
-## Google ad consent (Android, optional, unreleased)
+## Google ad consent (Android, optional)
 
 If your game shows a consent banner (required in the EU, the EEA and the UK) and you measure Google App
 campaigns, relay its two answers, using Google's Consent Mode names. Both are persisted, so call it
@@ -156,7 +156,9 @@ until **both** answers have been given. Every beacon then carries `ad_user_data`
 said". It does nothing on iOS. On Android a purchase you verify with `Roas.VerifyPurchase` now also
 carries the advertising id, so Google can match it.
 
-**Status: written, with EditMode tests, and not yet run on a device.**
+**Status:** checked on an Android emulator against the collector (both flags on the first beacon, a
+refusal sent as `false`). The advertising id on a verified purchase has not been exercised: it needs a
+device with Play Services and a real purchase.
 
 ## Deep links: two halves, both required
 
