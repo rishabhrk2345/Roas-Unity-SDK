@@ -65,6 +65,26 @@ public static class RoasBuildScript
     /// </summary>
     public static void BuildAndroidApk() => Build(BuildTarget.Android, "../../../roas-android-build/app.apk", buildAppBundle: false);
 
+    /// <summary>
+    /// A directly-installable .apk with 64-bit native libraries (ARM64 and x86-64), for running on an
+    /// Android EMULATOR as well as a phone. <see cref="BuildAndroidApk"/> keeps the project's own
+    /// settings, which with Unity's default Mono scripting backend produce 32-bit ARM only
+    /// (<c>armeabi-v7a</c>): an x86-64 emulator refuses that with INSTALL_FAILED_NO_MATCHING_ABIS.
+    /// 64-bit needs the IL2CPP backend, so this switches to it for this build (in memory; nothing is
+    /// saved to ProjectSettings) and takes noticeably longer. Same prerequisites as <see cref="BuildAndroid"/>.
+    /// <code>
+    /// /Applications/Unity/Hub/Editor/2022.3.50f1/Unity.app/Contents/MacOS/Unity \
+    ///   -batchmode -quit -nographics -projectPath ~/Roas-Unity-SDK-meta/TestProject \
+    ///   -executeMethod RoasBuildScript.BuildAndroidApkForEmulator -logFile ~/roas-android-emulator-build.log
+    /// </code>
+    /// </summary>
+    public static void BuildAndroidApkForEmulator()
+    {
+        PlayerSettings.SetScriptingBackend(BuildTargetGroup.Android, ScriptingImplementation.IL2CPP);
+        PlayerSettings.Android.targetArchitectures = AndroidArchitecture.ARM64 | AndroidArchitecture.X86_64;
+        Build(BuildTarget.Android, "../../../roas-android-build/app-emulator.apk", buildAppBundle: false);
+    }
+
     private static void Build(BuildTarget target, string relativeOutputPath, bool buildAppBundle = false)
     {
         EnsureScene();
