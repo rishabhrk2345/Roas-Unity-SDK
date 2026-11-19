@@ -1,14 +1,18 @@
 # Changelog
 
-## Unreleased
+## 0.1.9
 
 - **Meta's own install referrer (Android, optional).** `Roas.Initialize(..., metaAppId: ...)` (or
   the settings asset's *Android Meta App Id*) makes the first launch also read Meta's referrer from
   the Facebook / Instagram / Facebook Lite app and send it beside Google Play's, so an install after
   an ad was only viewed, or tapped in an earlier session, is no longer credited to nothing. Mirrors
   the native Android SDK's 0.1.12 `MetaInstallReferrerReader`. The game's manifest needs three
-  `<queries>` entries (README). **Written without a Unity editor and not yet run: build and test it
-  before tagging a release.**
+  `<queries>` entries (README). Verified on Unity 2022.3.50f1: the 40 EditMode tests pass, an IL2CPP
+  Android build compiles, and on an x86-64 emulator against a stand-in for the Facebook app the
+  full read credited a click, a view and Google Play's query-string shape correctly and dropped a
+  stale click, an empty answer and a missing app. **Not yet seen: what Meta's real app returns.**
+- **Fixed every beacon reporting `sdk_version` 0.1.5.** The constant was not bumped with 0.1.6 to
+  0.1.8, so the collector and the Testing stream saw the wrong build.
 - New EditMode tests: `RoasMetaReferrerTests`.
 
 ## 0.1.8

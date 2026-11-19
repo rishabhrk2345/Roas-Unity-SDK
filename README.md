@@ -100,7 +100,7 @@ Roas.VerifyPurchase(transactionId: transactionId);                              
 Roas.RequestTrackingAuthorization();
 ```
 
-## Meta install ads (Android, optional, unreleased)
+## Meta install ads (Android, optional)
 
 Google Play's install referrer only carries a *same-session tap* on a Meta ad. To also see an
 install after an ad was only **viewed**, or tapped in an earlier session, give the SDK the
@@ -116,8 +116,9 @@ is set, ignored on iOS, and the answer stays encrypted until the collector opens
 
 **Your game's Android manifest must declare the three apps** (Android 11+ package visibility), or
 their providers are invisible and every read reports `NOT_AVAILABLE`, exactly as if Facebook were
-not installed. In Unity, enable *Player Settings → Publishing Settings → Custom Main Manifest*, then
-add inside `<manifest>` of `Assets/Plugins/Android/AndroidManifest.xml`:
+not installed. In Unity, put these inside `<manifest>` of `Assets/Plugins/Android/AndroidManifest.xml`
+(create the file if you have none; Unity 2022.3 merges it into the build, and switching on *Custom
+Main Manifest* is not needed for it):
 
 ```xml
 <queries>
@@ -132,7 +133,10 @@ cannot add them for you: it ships no Android library folder, by design (see
 `RoasAndroidBridge.cs`). With the Debug log level, `adb logcat -s Unity` prints a
 `[RoasSensor] meta referrer:` line with what Meta's app returned.
 
-**Status: written without a Unity editor and not yet run.** Verify it on a device before relying on
+**Status: verified against a stand-in for the Facebook app, not against Meta's real one.** On Unity
+2022.3.50f1 the EditMode tests pass, the IL2CPP Android build compiles, and on an x86-64 emulator the
+read credited a click, a view and the query-string shape correctly and ignored stale, empty and
+missing answers. What Meta's real app returns has not been seen yet. Verify it on a device before relying on
 it (see *Testing*).
 
 ## Deep links: two halves, both required
@@ -208,7 +212,7 @@ Mirrors every other ROASSensor SDK exactly, and must not drift:
 `Tests/Editor` has NUnit parity tests for hashing, HMAC signing and session-rollover behaviour —
 open via Window → General → Test Runner → EditMode. `RoasMetaReferrerTests` covers the
 platform-independent half of Meta's install referrer (app id rules, which answer wins, the beacon
-fields) and mirrors the Android SDK's `MetaInstallReferrerReaderTest`; **it has not been run yet**.
+fields) and mirrors the Android SDK's `MetaInstallReferrerReaderTest`; all 40 EditMode tests pass on 2022.3.50f1.
 Headless: `Unity -batchmode -projectPath TestProject -runTests -testPlatform EditMode -logFile -`.
 The Android read itself (`RoasAndroidBridge.ReadMetaInstallReferrer`, raw JNI) needs a device with
 a Facebook app and a Meta ad to exercise end to end.
