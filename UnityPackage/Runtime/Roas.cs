@@ -41,6 +41,9 @@ namespace RoasSensor
         private static string _publicKey;
         // The Facebook app id for Meta's own install referrer (Android only); null = Google's alone.
         private static string _metaAppId;
+        // A SetGoogleConsent made before Initialize, when there is no storage yet to hold it.
+        private static bool? _pendingAdUserData;
+        private static bool? _pendingAdPersonalization;
         private static RoasStorage _storage;
         private static RoasTransport _transport;
         private static RoasSessionTracker _sessions;
@@ -116,6 +119,11 @@ namespace RoasSensor
                 _publicKey = publicKey;
                 _metaAppId = metaAppId;
                 _storage = new RoasStorage();
+                // Apply an answer relayed before Initialize, so the install itself carries it.
+                if (_pendingAdUserData.HasValue) _storage.AdUserData = _pendingAdUserData;
+                if (_pendingAdPersonalization.HasValue) _storage.AdPersonalization = _pendingAdPersonalization;
+                _pendingAdUserData = null;
+                _pendingAdPersonalization = null;
                 ResetIfDataWasResurrected();
                 _runtime = RoasRuntime.GetOrCreate();
                 _transport = new RoasTransport(RoasHosts.Normalize(baseUrl), _storage, appSecret, _runtime)
@@ -171,6 +179,38 @@ namespace RoasSensor
             }
             SetLogLevel(settings.logLevel);
             Initialize(settings.PublicKeyForCurrentPlatform(), settings.customerUserId, settings.ResolvedBaseUrl(), settings.AppSecretForCurrentPlatform(), settings.MetaAppIdForCurrentPlatform());
+        }
+
+        /// <summary>
+        /// (Android only; a no-op elsewhere) Relay the person's <b>Google</b> consent choices from your
+        /// consent banner, using Google's Consent Mode names. <paramref name="adUserData"/>: may this
+        /// person's data be sent to Google for advertising? <c>false</c> and nothing about them is ever
+        /// sent to Google through ROAS Sensor. <paramref name="adPersonalization"/>: may it be used for
+        /// personalised advertising? <c>false</c> and they are still measured, but not for personalisation.
+        ///
+        /// <b>Needed for people in the EU, the EEA and the UK</b> when you measure Google App campaigns:
+        /// Google requires both flags for them, so a game that never calls this is not reported to Google
+        /// for those people (everyone else is unaffected). Persisted, so they answer once. Safe before
+        /// <see cref="Initialize"/>, and best called there, so the install itself carries the choice.
+        /// Every beacon carries the answers once they are set. Separate from any other consent choice.
+        /// </summary>
+        public static void SetGoogleConsent(bool adUserData, bool adPersonalization)
+        {
+#if UNITY_ANDROID
+            lock (InitLock)
+            {
+                if (_initialized)
+                {
+                    _storage.AdUserData = adUserData;
+                    _storage.AdPersonalization = adPersonalization;
+                }
+                else
+                {
+                    _pendingAdUserData = adUserData;
+                    _pendingAdPersonalization = adPersonalization;
+                }
+            }
+#endif
         }
 
         /// <summary>The stable visitor id for this install. Pass it to RevenueCat/your billing
@@ -290,7 +330,28 @@ namespace RoasSensor
                 .Put("purchase_token", purchaseToken)
                 .Put("product_id", productId)
                 .Put("is_subscription", isSubscription);
-            _transport.Send("/api/tracking/mobile/purchase", body);
+            // The advertising id belongs on this beacon too: the collector hands an app purchase to Google's
+            // App Conversion API, which matches on the device, and a purchase arrives long after the
+            // install (the collector keeps no ad id, on purpose). Read off the main thread, on a thread
+            // attached to the JVM, like every other GAID read here. Only ever an optional match key:
+            // without Play Services there is simply none, and the purchase is verified as before.
+            Task.Run(() =>
+            {
+                AndroidJNI.AttachCurrentThread();
+                try
+                {
+                    var deviceId = RoasAndroidBridge.AdvertisingId();
+                    _runtime.RunOnMainThread(() =>
+                    {
+                        if (!string.IsNullOrEmpty(deviceId)) body.Put("device_id", deviceId);
+                        _transport.Send("/api/tracking/mobile/purchase", body);
+                    });
+                }
+                finally
+                {
+                    AndroidJNI.DetachCurrentThread();
+                }
+            });
 #elif UNITY_IOS && !UNITY_EDITOR
             var id = (transactionId ?? string.Empty).Trim();
             if (id.Length == 0 || id.Length > 64) return;
@@ -601,13 +662,17 @@ namespace RoasSensor
         /// </summary>
         private static RoasJson BaseBody()
         {
-            return new RoasJson()
+            var body = new RoasJson()
                 .Put("site", _publicKey)
                 .Put("vid", _storage.VisitorId)
                 .Put("session_id", _sessions.Current().Id)
                 .Put("sequence", _sessions.NextSequence())
                 .Put("ts", NowIso())
                 .Put("clock_offset_seconds", _storage.ClockOffsetSeconds);
+            // Google's two consent flags, ONLY when the game has relayed them (absent means
+            // "not said", which the collector treats differently from a denial).
+            RoasGoogleConsent.WriteTo(body, _storage.AdUserData, _storage.AdPersonalization);
+            return body;
         }
 
         private static string NowIso()

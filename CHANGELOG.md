@@ -1,5 +1,14 @@
 # Changelog
 
+## Unreleased
+
+- **Google ad consent (Android).** `Roas.SetGoogleConsent(adUserData, adPersonalization)` relays the two
+  Google consent-mode answers from your consent banner, persisted and held until `Initialize` if called
+  first, and every beacon carries them once set. Needed for people in the EU, the EEA and the UK when you
+  measure Google App campaigns; mirrors the native Android SDK's `setGoogleConsent` (0.1.11). A no-op on
+  iOS. On Android, `VerifyPurchase` now also carries the advertising id, as the native SDK does.
+- New EditMode tests: `RoasGoogleConsentTests`. **Not yet run, and not yet checked on a device.**
+
 ## 0.1.9
 
 - **Meta's own install referrer (Android, optional).** `Roas.Initialize(..., metaAppId: ...)` (or

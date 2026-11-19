@@ -22,6 +22,12 @@ namespace RoasSensor.Internal
         private const string KeyClockOffset = "roas_clock_offset";
         private const string KeyFirstInstallTime = "roas_first_install_time";
 
+        // Google's two consent-mode answers. Absent = the game has not said, which is NOT the same as
+        // denied, so each is its own key rather than a default. Deliberately left out of
+        // ResetForNewInstall: like the CCPA choice they are the person's answer about this device.
+        private const string KeyAdUserData = "roas_ad_user_data";
+        private const string KeyAdPersonalization = "roas_ad_personalization";
+
         private const string KeySessionId = "roas_session_id";
         private const string KeySessionNumber = "roas_session_number";
         private const string KeySessionPvId = "roas_session_pv_id";
@@ -38,6 +44,35 @@ namespace RoasSensor.Internal
         private const int MaxQueue = 500;
 
         private static readonly object Lock = new object();
+
+        /// <summary>May this person's data be sent to Google for advertising? Null = never said.</summary>
+        public bool? AdUserData
+        {
+            get => ReadFlag(KeyAdUserData);
+            set => WriteFlag(KeyAdUserData, value);
+        }
+
+        /// <summary>May it be used for personalised advertising? Null = never said.</summary>
+        public bool? AdPersonalization
+        {
+            get => ReadFlag(KeyAdPersonalization);
+            set => WriteFlag(KeyAdPersonalization, value);
+        }
+
+        private static bool? ReadFlag(string key)
+        {
+            lock (Lock) { return PlayerPrefs.HasKey(key) ? PlayerPrefs.GetInt(key, 0) == 1 : (bool?)null; }
+        }
+
+        private static void WriteFlag(string key, bool? value)
+        {
+            lock (Lock)
+            {
+                if (value.HasValue) PlayerPrefs.SetInt(key, value.Value ? 1 : 0);
+                else PlayerPrefs.DeleteKey(key);
+                PlayerPrefs.Save();
+            }
+        }
 
         public string VisitorId
         {

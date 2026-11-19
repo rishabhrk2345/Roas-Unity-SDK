@@ -139,6 +139,25 @@ read credited a click, a view and the query-string shape correctly and ignored s
 missing answers. What Meta's real app returns has not been seen yet. Verify it on a device before relying on
 it (see *Testing*).
 
+## Google ad consent (Android, optional, unreleased)
+
+If your game shows a consent banner (required in the EU, the EEA and the UK) and you measure Google App
+campaigns, relay its two answers, using Google's Consent Mode names. Both are persisted, so call it
+before `Roas.Initialize` where you can (it is held until the SDK starts, so the install itself carries it),
+and again whenever the person changes their mind:
+
+```csharp
+Roas.SetGoogleConsent(adUserData: true, adPersonalization: false);
+```
+
+A person who declines `adUserData` is never sent to Google. For people in those regions nothing is sent
+until **both** answers have been given. Every beacon then carries `ad_user_data` and
+`ad_personalization`; a game that never calls this sends neither, which the collector reads as "not
+said". It does nothing on iOS. On Android a purchase you verify with `Roas.VerifyPurchase` now also
+carries the advertising id, so Google can match it.
+
+**Status: written, with EditMode tests, and not yet run on a device.**
+
 ## Deep links: two halves, both required
 
 `Roas.HandleDeepLink(url)` only parses a URL you hand it — getting that URL out of Unity needs
